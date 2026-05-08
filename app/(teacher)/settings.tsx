@@ -62,7 +62,7 @@ export default function SettingsScreen() {
         <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
           <View className="px-4 py-4 border-b border-zinc-100 dark:border-zinc-800">
             <Text className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">
-              About EduVoice
+              About Nuru
             </Text>
           </View>
           <View className="px-4 py-4 gap-3">
