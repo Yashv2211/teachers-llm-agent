@@ -107,6 +107,26 @@ export async function generateGreeting(
   );
 }
 
+// ─── STT ──────────────────────────────────────────────────────────────────────
+
+const LANGUAGE_BCP47: Record<string, string> = {
+  English: "en", Spanish: "es", French: "fr", Portuguese: "pt",
+  Arabic: "ar", Mandarin: "zh", Hindi: "hi", Swahili: "sw",
+  Bengali: "bn", Hausa: "ha", Amharic: "am", Tagalog: "tl", Yoruba: "yo",
+};
+
+export async function transcribeAudio(audioBlob: Blob, languageLabel?: string): Promise<string> {
+  const langCode = languageLabel ? (LANGUAGE_BCP47[languageLabel] ?? "en") : "en";
+  const file = new File([audioBlob], "audio.webm", { type: "audio/webm" });
+  const transcript = await groq.audio.transcriptions.create({
+    file,
+    model: "whisper-large-v3-turbo",
+    response_format: "text",
+    ...(langCode !== "en" ? { language: langCode } : {}),
+  }) as unknown as string;
+  return transcript.trim();
+}
+
 // ─── TTS ──────────────────────────────────────────────────────────────────────
 
 const PLAYAI_VOICE_MAP: Record<string, string> = {
