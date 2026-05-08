@@ -1,8 +1,8 @@
 import { db } from "@/lib/db";
-import { Redirect } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
-export default function Index() {
+export default function AuthLayout() {
   const { isLoading, user } = db.useAuth();
 
   if (isLoading) {
@@ -17,5 +17,9 @@ export default function Index() {
     return <Redirect href="/(teacher)" />;
   }
 
-  return <Redirect href="/(auth)/login" />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login" />
+    </Stack>
+  );
 }

@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "createdAt": "2026-05-08T00:00:00Z",
+    "updatedAt": "2026-05-08T00:00:00Z",
+    "version": "1.1",
+    "plaidVersion": "1.0"
+  },
+  "creator": {
+    "name": "Yash",
+    "expertise": "Political science, data science, risk analysis, and app development",
+    "background": "Grew up in India experiencing the education system firsthand, then studied abroad in the UK and saw the stark contrast in education quality. That lived experience — both sides of the global education gap — is what drives Nuru. Yash knows exactly what students lose when they don't have access to individual attention and quality resources."
+  },
+  "purpose": {
+    "whoYouHelp": "Teachers in low-resource countries across Africa, Asia, and South America who want to give their students better, more individualized learning experiences but lack the tools and infrastructure that first-world schools take for granted",
+    "problemYouSolve": "Students in developing countries don't get individual attention. Teachers are stretched across 60+ students with no tools to provide personalized help. Meanwhile, students in wealthier countries already have access to AI tutors, private tutoring, and individualized learning platforms. The gap is growing, not shrinking.",
+    "desiredTransformation": "A student in rural Kenya, a village in India, or a township in Brazil gets the same quality of individualized AI-powered learning as a student in London or New York — for free, with their teacher's knowledge baked in, accessible from any device with a browser.",
+    "whyYou": "Yash lived both sides of this gap — Indian education system then UK higher education. He has seen firsthand how much education quality shapes life outcomes, and has the technical skills (data science, app development) and policy lens (political science) to build something that works in the real world, not just on paper."
+  },
+  "product": {
+    "name": "Nuru",
+    "oneLiner": "Nuru lets any teacher deploy AI tutors so every student gets the individual attention only first-world schools have had — until now.",
+    "howItWorks": "A teacher signs up, creates an AI agent for a subject or class, uploads their own materials (PDFs, Word docs, YouTube videos, URLs) or picks from Nuru's built-in curriculum library. Nuru generates a QR code and shareable link. Students scan or click, and immediately start talking to a voice AI tutor powered by the teacher's own knowledge — no login, no app download, no cost. Teachers can monitor what students are asking and adjust the agent over time.",
+    "keyCapabilities": [
+      "Teacher-facing agent builder with subject, grade level, and language configuration",
+      "Context ingestion from PDFs, Word documents, YouTube transcripts, and URLs",
+      "Built-in curriculum library with trusted educational materials",
+      "QR code and shareable link generation for instant student access",
+      "AI voice tutor powered by Groq LLM with multilingual TTS support",
+      "Student access with no login, no app download, no cost"
+    ],
+    "platform": "web",
+    "marketDifferentiation": "Unlike EdTech platforms that require institutional buy-in, IT infrastructure, or student accounts, Nuru works with zero student setup — a QR code is all they need. It is built specifically for low-resource environments: no app, no login, no cost. And unlike generic AI tools, every agent is grounded in the teacher's own materials and curriculum.",
+    "magicMoment": "A teacher in Nairobi creates an agent for their Grade 5 science class in under 10 minutes, prints the QR code, sticks it on the classroom wall. A student who was too shy to ask questions in class scans it on a shared phone, asks the AI tutor about photosynthesis in Swahili, and gets a clear, patient explanation. The teacher sees the question log the next day and adjusts their lesson plan."
+  },
+  "audience": {
+    "primaryUser": "Amara, 34, primary school teacher in Ghana. She teaches three subjects to 55 students. She has a smartphone and occasional laptop access, but no budget for EdTech tools. She is motivated to improve her students' outcomes but feels overwhelmed by class size. She would use Nuru to create a maths agent and a science agent, print the QR codes, and let students access them at home or in the school's computer lab.",
+    "secondaryUsers": [
+      "Curious students in developing countries who want to learn beyond the classroom and may outpace their teachers with self-directed AI tutoring",
+      "NGO education coordinators and school administrators looking for scalable, free tools to improve learning outcomes across multiple schools",
+      "Government education ministries in developing countries evaluating low-cost EdTech solutions for national rollout"
+    ],
+    "currentAlternatives": "Printed textbooks (static, outdated), Khan Academy (requires reliable internet and English proficiency), WhatsApp study groups (unstructured), private tutors (unaffordable for most), or simply nothing — students who fall behind stay behind.",
+    "frustrations": "Existing solutions either require reliable internet, English fluency, student accounts, expensive licenses, or institutional IT support. None are designed from the ground up for low-resource environments. Most assume the student has a personal device and a fast connection. Nuru assumes neither."
+  },
+  "business": {
+    "revenueModel": "free",
+    "initialGoal": "50 teachers onboarded across at least 3 countries within 90 days, first grant application submitted to an education-focused foundation (Gates, UNESCO, or equivalent), and 100 AI agents created by real teachers in real classrooms",
+    "sixMonthVision": "500+ teachers active across 10+ countries, first government MOU signed with a ministry of education for a pilot program, student-direct access launched (students can onboard and use Nuru without a teacher), and multilingual TTS fully working across the top 10 languages in target regions (Swahili, Hindi, Arabic, Spanish, French, Portuguese, Bengali, Hausa, Amharic, Tagalog)",
+    "constraints": "Product must remain free for all end users forever. Budget is extremely limited — approximately £50 remaining runway. Two-person team: Yash (founder) and Claude Code (AI coding agent). All infrastructure choices must stay within free tiers until grant or government funding is secured.",
+    "goToMarket": "Direct outreach to teacher communities on WhatsApp and Facebook groups in target regions, partnerships with NGOs already working in education in Africa and South Asia, grant applications to education-focused foundations, and government pilot conversations with ministries of education."
+  },
+  "feeling": {
+    "brandPersonality": "Warm activist — deeply empathetic to the teacher's reality, genuinely excited about what students can achieve, and quietly angry about the inequality that makes Nuru necessary. Not preachy. Not corporate. Speaks like someone who has been in the classroom, not someone who has only read about it.",
+    "toneOfVoice": "Empowering and direct. 'You already know what your students need. Nuru gives you the tools.' Never talks down to teachers. Never uses jargon. Celebrates small wins. Acknowledges the difficulty of teaching in under-resourced environments without being patronizing. Example: 'Your students asked 47 questions this week. Here's what they were curious about.' Not: 'Leverage AI-powered pedagogical insights to optimize student engagement.'"
+  },
+  "techStack": {
+    "appType": "web",
+    "frontend": {
+      "choice": "Expo (React Native Web)",
+      "rationale": "Already built. Web-first means no app download required — critical for low-resource environments. Works on any browser on any device."
+    },
+    "backend": {
+      "choice": "InstantDB",
+      "rationale": "Already integrated. Real-time sync, generous free tier, magic code auth built in. Zero backend infrastructure to manage."
+    },
+    "database": {
+      "choice": "InstantDB",
+      "rationale": "Included with InstantDB backend. Real-time reactive queries, offline support, no separate DB to provision."
+    },
+    "auth": {
+      "choice": "InstantDB Magic Code",
+      "rationale": "Email-based, no password required. Teachers sign up with just an email. Students need no auth at all — access via shareToken."
+    },
+    "payments": {
+      "choice": "",
+      "rationale": "No payments. Nuru is free for all users. Revenue comes from grants and B2G contracts, not end users."
+    }
+  },
+  "tooling": {
+    "codingAgent": "claude-code"
+  }
+}

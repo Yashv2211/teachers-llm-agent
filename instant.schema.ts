@@ -16,6 +16,17 @@ const _schema = i.schema({
     colors: i.entity({
       value: i.string(),
     }),
+    agents: i.entity({
+      name: i.string(),
+      subject: i.string(),
+      systemPrompt: i.string(),
+      contextText: i.string().optional(),
+      contextSources: i.string().optional(), // JSON array of { type, label } objects
+      gradeLevel: i.string(), // "elementary" | "middle" | "high"
+      language: i.string(), // e.g. "English", "Spanish"
+      shareToken: i.string().unique().indexed(),
+      createdAt: i.number().indexed(),
+    }),
   },
   rooms: {},
   links: {
@@ -30,6 +41,18 @@ const _schema = i.schema({
         on: "$users",
         has: "many",
         label: "linkedGuestUsers",
+      },
+    },
+    teacherAgents: {
+      forward: {
+        on: "$users",
+        has: "many",
+        label: "agents",
+      },
+      reverse: {
+        on: "agents",
+        has: "one",
+        label: "teacher",
       },
     },
   },
