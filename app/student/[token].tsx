@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { generateGreeting, groqVoiceForLanguage, sendMessage, speakWithGroqTTS, transcribeAudio } from "@/lib/groq";
+import { generateGreeting, groqVoiceForLanguage, sendMessage, speakWithGroqTTS, speakWithWebSpeech, transcribeAudio } from "@/lib/groq";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -197,6 +197,11 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
     }
   }
 
+  function idleStatus() {
+    setVoiceState("idle");
+    setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
+  }
+
   async function speakReply(reply: string) {
     setVoiceState("speaking");
     setStatusText("Speaking…");
@@ -204,45 +209,30 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
     const groqVoice = groqVoiceForLanguage(agent.language);
 
     if (groqVoice) {
+      // English: use Groq playai-tts
       try {
         const { promise, cancel } = await speakWithGroqTTS(reply, groqVoice);
         cancelTTSRef.current = cancel;
         await promise;
         cancelTTSRef.current = null;
-        setVoiceState("idle");
-        setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
+        idleStatus();
         return;
       } catch {
-        // Fall through to Web Speech API
+        // fall through to Web Speech
       }
     }
 
-    const utterance = new SpeechSynthesisUtterance(reply);
-    utterance.lang = agent.language ?? "en-US";
-    utterance.rate = 0.92;
-    utterance.pitch = 1.05;
-
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(
-      (v) =>
-        v.lang.startsWith(utterance.lang.split("-")[0]) &&
-        (v.name.includes("Google") || v.name.includes("Neural") || v.name.includes("Natural"))
-    );
-    if (preferred) utterance.voice = preferred;
-
-    cancelTTSRef.current = () => window.speechSynthesis.cancel();
-
-    utterance.onend = () => {
+    // Non-English (and English fallback): use Web Speech API
+    cancelTTSRef.current = () => window.speechSynthesis?.cancel();
+    try {
+      await speakWithWebSpeech(reply, agent.language ?? "English");
+    } catch {
+      // TTS unavailable — text is already displayed, just note it
+      setStatusText("Audio unavailable — read the response above.");
+    } finally {
       cancelTTSRef.current = null;
-      setVoiceState("idle");
-      setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
-    };
-    utterance.onerror = () => {
-      cancelTTSRef.current = null;
-      setVoiceState("idle");
-      setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
-    };
-    window.speechSynthesis.speak(utterance);
+      idleStatus();
+    }
   }
 
   async function processUserInput(input: string) {

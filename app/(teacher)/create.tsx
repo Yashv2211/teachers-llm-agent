@@ -13,6 +13,7 @@ import {
   getTrustedSources,
   LIBRARY_SUBJECTS,
 } from "@/lib/curriculum-library";
+import { SUPPORTED_LANGUAGES } from "@/lib/languages";
 import { id } from "@instantdb/react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as Haptics from "expo-haptics";
@@ -78,10 +79,6 @@ const TEMPLATES = [
 
 const GRADE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-const LANGUAGE_OPTIONS = [
-  "English", "Spanish", "French", "Portuguese",
-  "Arabic", "Mandarin", "Hindi", "Swahili",
-];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -328,8 +325,9 @@ export default function CreateAgentScreen() {
           {/* Language */}
           <SectionLabel>Response language</SectionLabel>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }} style={{ marginBottom: 20 }}>
-            {LANGUAGE_OPTIONS.map((lang) => {
-              const sel = language === lang;
+            {SUPPORTED_LANGUAGES.map(({ label }) => {
+              const sel = language === label;
+              const lang = label;
               return (
                 <Pressable key={lang} onPress={() => { setLanguage(lang); Haptics.selectionAsync(); }}
                   style={{
