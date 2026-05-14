@@ -27,6 +27,11 @@ const _schema = i.schema({
       shareToken: i.string().unique().indexed(),
       createdAt: i.number().indexed(),
     }),
+    questionLog: i.entity({
+      agentId: i.string().indexed(),
+      question: i.string(),
+      createdAt: i.number().indexed(),
+    }),
   },
   rooms: {},
   links: {

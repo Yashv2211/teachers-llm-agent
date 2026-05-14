@@ -60,7 +60,7 @@ export default function LoginScreen() {
           </View>
 
           <Text className="text-4xl font-bold text-zinc-900 dark:text-white text-center mb-3">
-            EduVoice
+            Nuru
           </Text>
           <Text className="text-lg text-zinc-500 dark:text-zinc-400 text-center mb-2">
             AI voice agents for your classroom
