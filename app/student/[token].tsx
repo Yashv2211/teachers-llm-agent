@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { generateGreeting, groqVoiceForLanguage, sendMessage, speakWithGroqTTS } from "@/lib/groq";
+import { generateGreeting, groqVoiceForLanguage, sendMessage, speakWithGroqTTS, transcribeAudio } from "@/lib/groq";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -71,9 +71,6 @@ export default function StudentScreen() {
   const agent = data?.agents?.[0];
 
   const isBrowser = Platform.OS === "web" && typeof window !== "undefined";
-  const hasSpeech =
-    isBrowser &&
-    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
   if (isLoading) {
     return (
@@ -97,27 +94,32 @@ export default function StudentScreen() {
     );
   }
 
-  return <VoiceInterface agent={agent} hasSpeech={hasSpeech} />;
+  return <VoiceInterface agent={agent} isBrowser={isBrowser} />;
 }
 
 // ─── Voice Interface ──────────────────────────────────────────────────────────
 
-function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }) {
+function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }) {
   const [started, setStarted] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [messages, setMessages] = useState<Message[]>([]);
   const [greetingLoading, setGreetingLoading] = useState(true);
-  const [statusText, setStatusText] = useState(
-    hasSpeech ? "Tap the mic or type below" : "Type your question below"
-  );
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
+  const [statusText, setStatusText] = useState("Tap the mic or type below");
   const [textInput, setTextInput] = useState("");
+
   const scrollRef = useRef<ScrollView>(null);
   const cancelTTSRef = useRef<(() => void) | null>(null);
   const greetingTextRef = useRef<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const bgColor = SUBJECT_BG[agent.subject] ?? DEFAULT_BG;
   const accentColor = SUBJECT_ACCENT[agent.subject] ?? DEFAULT_ACCENT;
   const subjectEmoji = SUBJECT_EMOJI[agent.subject] ?? "🤖";
+
+  const showMicButton = isBrowser && !micPermissionDenied;
 
   // Generate opening greeting on mount
   useEffect(() => {
@@ -208,7 +210,7 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
         await promise;
         cancelTTSRef.current = null;
         setVoiceState("idle");
-        setStatusText(hasSpeech ? "Tap the mic or type below" : "Type your question below");
+        setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
         return;
       } catch {
         // Fall through to Web Speech API
@@ -233,19 +235,19 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
     utterance.onend = () => {
       cancelTTSRef.current = null;
       setVoiceState("idle");
-      setStatusText(hasSpeech ? "Tap the mic or type below" : "Type your question below");
+      setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
     };
     utterance.onerror = () => {
       cancelTTSRef.current = null;
       setVoiceState("idle");
-      setStatusText(hasSpeech ? "Tap the mic or type below" : "Type your question below");
+      setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
     };
     window.speechSynthesis.speak(utterance);
   }
 
   async function processUserInput(input: string) {
     const trimmed = input.trim();
-    if (!trimmed || voiceState !== "idle") return;
+    if (!trimmed) return;
 
     const updatedHistory = [
       ...messages.map((m) => ({ role: m.role as "user" | "assistant", text: m.text })),
@@ -269,64 +271,83 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
       await speakReply(reply);
     } catch {
       setVoiceState("idle");
-      setStatusText("Something went wrong. Try again.");
+      setStatusText("Something went wrong — tap to try again.");
     }
   }
 
-  function startListening() {
+  async function handleMicPress() {
+    if (voiceState === "listening") {
+      // Second tap: stop recording
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+      return;
+    }
+
     if (voiceState !== "idle") return;
+
     stopCurrentTTS();
+    audioChunksRef.current = [];
 
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = agent.language ?? "en-US";
-    recognition.continuous = false;
-    recognition.interimResults = false;
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
 
-    recognition.onstart = () => {
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        audioChunksRef.current = [];
+
+        if (audioBlob.size === 0) {
+          setVoiceState("idle");
+          setStatusText("Tap the mic or type below");
+          return;
+        }
+
+        setVoiceState("thinking");
+        setStatusText("Thinking…");
+
+        try {
+          const transcript = await transcribeAudio(audioBlob, agent.language);
+          if (!transcript.trim()) {
+            setVoiceState("idle");
+            setStatusText("Didn't catch that — tap to try again.");
+            return;
+          }
+          await processUserInput(transcript);
+        } catch {
+          setVoiceState("idle");
+          setStatusText("Didn't catch that — tap to try again.");
+        }
+      };
+
+      recorder.start();
       setVoiceState("listening");
       setStatusText("Listening…");
-    };
-
-    recognition.onresult = async (event: any) => {
-      const transcript: string = event.results[0][0].transcript;
-      if (!transcript.trim()) {
-        setVoiceState("idle");
-        setStatusText(hasSpeech ? "Tap the mic or type below" : "Type your question below");
-        return;
-      }
-      await processUserInput(transcript);
-    };
-
-    recognition.onerror = (event: any) => {
-      setVoiceState("idle");
-      if (event.error === "no-speech") {
-        setStatusText("No speech detected. Try again.");
-      } else if (event.error === "not-allowed") {
-        setStatusText("Mic permission denied. Type your question below.");
+    } catch (err: any) {
+      const isPermissionError =
+        err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError";
+      if (isPermissionError) {
+        setMicPermissionDenied(true);
+        setStatusText("Voice unavailable — type your question.");
       } else {
-        setStatusText("Error. Try again.");
+        setVoiceState("idle");
+        setStatusText("Couldn't access microphone. Type below.");
       }
-    };
-
-    recognition.onend = () => {
-      setVoiceState((current) => {
-        if (current === "listening") {
-          setStatusText(hasSpeech ? "Tap the mic or type below" : "Type your question below");
-          return "idle";
-        }
-        return current;
-      });
-    };
-
-    recognition.start();
+    }
   }
 
   function handleSendText() {
-    if (!textInput.trim()) return;
+    if (!textInput.trim() || voiceState !== "idle") return;
     Keyboard.dismiss();
     const text = textInput;
     setTextInput("");
@@ -355,7 +376,8 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
   };
 
   const micColor = micColors[voiceState];
-  const isDisabled = voiceState !== "idle";
+  const isDisabled = voiceState !== "idle"; // for text input / send button
+  const micButtonDisabled = voiceState === "thinking" || voiceState === "speaking";
 
   // ─── Welcome screen ───────────────────────────────────────────────────────
 
@@ -602,8 +624,8 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
           shadowOffset: { width: 0, height: -4 },
         }}
       >
-        {/* Mic button */}
-        {hasSpeech && (
+        {/* Mic button — shown when mic is available */}
+        {showMicButton && (
           <View style={{ alignItems: "center", marginBottom: 16 }}>
             <View
               style={{
@@ -617,8 +639,8 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
             >
               <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                 <Pressable
-                  onPress={startListening}
-                  disabled={isDisabled}
+                  onPress={handleMicPress}
+                  disabled={micButtonDisabled}
                   style={{
                     width: 76,
                     height: 76,
@@ -631,7 +653,7 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
                     shadowOpacity: 0.45,
                     shadowRadius: 14,
                     elevation: 10,
-                    opacity: isDisabled && voiceState !== "thinking" && voiceState !== "speaking" ? 0.6 : 1,
+                    opacity: micButtonDisabled ? 0.6 : 1,
                   }}
                 >
                   <Ionicons name={micIconNames[voiceState]} size={30} color="white" />
@@ -652,7 +674,7 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
         )}
 
         {/* Divider */}
-        {hasSpeech && (
+        {showMicButton && (
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: "#f4f4f5" }} />
             <Text style={{ fontSize: 11, color: "#d4d4d8", marginHorizontal: 12, fontWeight: "500" }}>
@@ -662,7 +684,7 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
           </View>
         )}
 
-        {!hasSpeech && (
+        {!showMicButton && (
           <Text style={{ fontSize: 12, color: "#a1a1aa", textAlign: "center", marginBottom: 10, letterSpacing: 0.3 }}>
             {statusText}
           </Text>
@@ -723,7 +745,7 @@ function VoiceInterface({ agent, hasSpeech }: { agent: any; hasSpeech: boolean }
                 ? [{ id: "greeting", role: "assistant", text: greetingTextRef.current }]
                 : []);
               setVoiceState("idle");
-              setStatusText(hasSpeech ? "Tap the mic or type below" : "Type your question below");
+              setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
             }}
             style={{ alignItems: "center", marginTop: 14 }}
           >
