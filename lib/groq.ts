@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { getBCP47Code } from "./languages";
 
 const groq = new Groq({
   apiKey: process.env.EXPO_PUBLIC_GROQ_API_KEY,
@@ -109,14 +110,8 @@ export async function generateGreeting(
 
 // ─── STT ──────────────────────────────────────────────────────────────────────
 
-const LANGUAGE_BCP47: Record<string, string> = {
-  English: "en", Spanish: "es", French: "fr", Portuguese: "pt",
-  Arabic: "ar", Mandarin: "zh", Hindi: "hi", Swahili: "sw",
-  Bengali: "bn", Hausa: "ha", Amharic: "am", Tagalog: "tl", Yoruba: "yo",
-};
-
 export async function transcribeAudio(audioBlob: Blob, languageLabel?: string): Promise<string> {
-  const langCode = languageLabel ? (LANGUAGE_BCP47[languageLabel] ?? "en") : "en";
+  const langCode = languageLabel ? getBCP47Code(languageLabel) : "en";
   const file = new File([audioBlob], "audio.webm", { type: "audio/webm" });
   const transcript = await groq.audio.transcriptions.create({
     file,
@@ -228,4 +223,32 @@ export async function speakWithGroqTTS(
   };
 
   return { promise, cancel };
+}
+
+export function speakWithWebSpeech(text: string, language: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      console.warn("speakWithWebSpeech: Web Speech API not available");
+      resolve();
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = getBCP47Code(language);
+    utterance.rate = 0.92;
+    utterance.pitch = 1.05;
+
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(
+      (v) =>
+        v.lang.startsWith(utterance.lang.split("-")[0]) &&
+        (v.name.includes("Google") || v.name.includes("Neural") || v.name.includes("Natural"))
+    );
+    if (preferred) utterance.voice = preferred;
+
+    utterance.onend = () => resolve();
+    utterance.onerror = (e) => reject(new Error(`Web Speech error: ${e.error}`));
+
+    window.speechSynthesis.speak(utterance);
+  });
 }

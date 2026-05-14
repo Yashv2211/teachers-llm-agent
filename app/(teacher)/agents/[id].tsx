@@ -14,6 +14,7 @@ import {
   getTrustedSources,
   LIBRARY_SUBJECTS,
 } from "@/lib/curriculum-library";
+import { SUPPORTED_LANGUAGES } from "@/lib/languages";
 import { InstaQLEntity } from "@instantdb/react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
@@ -38,10 +39,6 @@ type Agent = InstaQLEntity<AppSchema, "agents">;
 
 const GRADE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-const LANGUAGE_OPTIONS = [
-  "English", "Spanish", "French", "Portuguese",
-  "Arabic", "Mandarin", "Hindi", "Swahili",
-];
 
 export default function AgentDetailScreen() {
   const { id: agentId } = useLocalSearchParams<{ id: string }>();
@@ -298,7 +295,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           <SectionLabel>Response language</SectionLabel>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }} style={{ marginBottom: 20 }}>
-            {LANGUAGE_OPTIONS.map((lang) => {
+            {SUPPORTED_LANGUAGES.map(({ label: lang }) => {
               const sel = language === lang;
               return (
                 <Pressable key={lang} onPress={() => { setLanguage(lang); Haptics.selectionAsync(); }}
