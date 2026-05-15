@@ -22,7 +22,7 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -44,6 +44,8 @@ const GRADE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 export default function AgentDetailScreen() {
   const { id: agentId } = useLocalSearchParams<{ id: string }>();
   const { user } = db.useAuth();
+  const [retryCount, setRetryCount] = useState(0);
+  const retry = useCallback(() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setRetryCount((c) => c + 1); }, []);
 
   const { isLoading, error, data } = db.useQuery(
     agentId ? { agents: { $: { where: { id: agentId } } } } : null
@@ -64,14 +66,19 @@ export default function AgentDetailScreen() {
       <View className="flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-8">
         <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
         <Text style={{ fontSize: 16, fontWeight: "700", color: "#18181b", textAlign: "center", marginBottom: 8 }}>
-          Couldn't load agent
+          Couldn't load this tutor
         </Text>
-        <Text style={{ fontSize: 14, color: "#71717a", textAlign: "center", marginBottom: 20 }}>
-          {error.message ?? "Something went wrong. Check your connection."}
+        <Text style={{ fontSize: 14, color: "#71717a", textAlign: "center", marginBottom: 24 }}>
+          Check your connection and try again.
         </Text>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: "#4f46e5", fontWeight: "600" }}>Go back</Text>
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <Pressable onPress={retry} style={{ backgroundColor: "#4338ca", borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 }}>
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>Try again</Text>
+          </Pressable>
+          <Pressable onPress={() => router.back()} style={{ borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12, borderWidth: 1, borderColor: "#e4e4e7" }}>
+            <Text style={{ color: "#71717a", fontWeight: "600", fontSize: 14 }}>Go back</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
