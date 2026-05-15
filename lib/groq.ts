@@ -59,13 +59,15 @@ export class GroqRateLimitError extends Error {
 
 // ─── Internal proxy helper ────────────────────────────────────────────────────
 
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "";
+
 async function groqChat(payload: {
   messages: { role: string; content: string }[];
   model: string;
   max_tokens: number;
   temperature: number;
 }): Promise<string> {
-  const res = await fetch("/api/groq", {
+  const res = await fetch(`${API_BASE}/api/groq`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -165,7 +167,7 @@ export async function transcribeAudio(audioBlob: Blob, languageLabel?: string): 
   });
 
   try {
-    const res = await fetch("/api/groq-audio", {
+    const res = await fetch(`${API_BASE}/api/groq-audio`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
