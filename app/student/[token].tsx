@@ -1,13 +1,14 @@
 import { db } from "@/lib/db";
-import { generateGreeting, groqVoiceForLanguage, sendMessage, speakWithGroqTTS, speakWithWebSpeech, transcribeAudio } from "@/lib/groq";
+import { id } from "@instantdb/react-native";
+import { generateGreeting, GroqRateLimitError, sendMessage, transcribeAudio } from "@/lib/groq";
+import { speak, TTSHandle } from "@/lib/tts";
+import { VoiceOrb } from "@/components/VoiceOrb";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
-  Easing,
   Keyboard,
   Platform,
   Pressable,
@@ -110,6 +111,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
   const scrollRef = useRef<ScrollView>(null);
   const cancelTTSRef = useRef<(() => void) | null>(null);
+  const ttsCancelledRef = useRef(false); // true when user explicitly stops/interrupts
   const greetingTextRef = useRef<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -144,36 +146,6 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
       });
   }, []);
 
-  // Pulse animation for listening state
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (voiceState === "listening") {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.12,
-            duration: 700,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 700,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    } else {
-      pulseAnim.stopAnimation();
-      Animated.timing(pulseAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [voiceState]);
 
   function scrollToBottom() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -188,6 +160,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
   }
 
   function stopCurrentTTS() {
+    ttsCancelledRef.current = true; // mark as user-cancelled so speakReply won't auto-listen
     if (cancelTTSRef.current) {
       cancelTTSRef.current();
       cancelTTSRef.current = null;
@@ -199,39 +172,32 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
   function idleStatus() {
     setVoiceState("idle");
-    setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
+    setStatusText(showMicButton ? "Tap the orb to speak" : "Voice unavailable — type your question.");
   }
 
   async function speakReply(reply: string) {
+    ttsCancelledRef.current = false; // reset before each utterance
     setVoiceState("speaking");
-    setStatusText("Speaking…");
+    setStatusText("Speaking… tap to interrupt");
 
-    const groqVoice = groqVoiceForLanguage(agent.language);
-
-    if (groqVoice) {
-      // English: use Groq playai-tts
-      try {
-        const { promise, cancel } = await speakWithGroqTTS(reply, groqVoice);
-        cancelTTSRef.current = cancel;
-        await promise;
-        cancelTTSRef.current = null;
-        idleStatus();
-        return;
-      } catch {
-        // fall through to Web Speech
-      }
-    }
-
-    // Non-English (and English fallback): use Web Speech API
-    cancelTTSRef.current = () => window.speechSynthesis?.cancel();
+    const { promise, cancel } = speak(reply, agent.language ?? "English");
+    cancelTTSRef.current = cancel;
     try {
-      await speakWithWebSpeech(reply, agent.language ?? "English");
+      await promise;
     } catch {
-      // TTS unavailable — text is already displayed, just note it
       setStatusText("Audio unavailable — read the response above.");
     } finally {
       cancelTTSRef.current = null;
-      idleStatus();
+      const wasCancelled = ttsCancelledRef.current;
+      // Natural completion → auto-start listening so the conversation flows hands-free.
+      // If user cancelled (stop button or barge-in), don't interfere — those paths
+      // already set the correct state themselves.
+      if (!wasCancelled && showMicButton) {
+        await startListening();
+      } else if (!wasCancelled) {
+        idleStatus(); // no mic available, just return to idle
+      }
+      // wasCancelled: do nothing — stop button called idleStatus(), barge-in called startListening()
     }
   }
 
@@ -258,24 +224,26 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
         agent.subject ?? ""
       );
       addMessage("assistant", reply);
+      // fire-and-forget — log question without blocking the conversation
+      db.transact(
+        db.tx.questionLog[id()].update({
+          agentId: agent.id,
+          question: trimmed,
+          createdAt: Date.now(),
+        })
+      );
       await speakReply(reply);
-    } catch {
+    } catch (err: any) {
       setVoiceState("idle");
-      setStatusText("Something went wrong — tap to try again.");
+      setStatusText(
+        err instanceof GroqRateLimitError
+          ? err.message
+          : "Something went wrong — tap to try again."
+      );
     }
   }
 
-  async function handleMicPress() {
-    if (voiceState === "listening") {
-      // Second tap: stop recording
-      if (mediaRecorderRef.current?.state === "recording") {
-        mediaRecorderRef.current.stop();
-      }
-      return;
-    }
-
-    if (voiceState !== "idle") return;
-
+  async function startListening() {
     stopCurrentTTS();
     audioChunksRef.current = [];
 
@@ -299,7 +267,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
         if (audioBlob.size === 0) {
           setVoiceState("idle");
-          setStatusText("Tap the mic or type below");
+          setStatusText("Tap the orb to speak");
           return;
         }
 
@@ -314,9 +282,13 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
             return;
           }
           await processUserInput(transcript);
-        } catch {
+        } catch (err: any) {
           setVoiceState("idle");
-          setStatusText("Didn't catch that — tap to try again.");
+          setStatusText(
+            err instanceof GroqRateLimitError
+              ? err.message
+              : "Didn't catch that — tap to try again."
+          );
         }
       };
 
@@ -336,6 +308,28 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
     }
   }
 
+  async function handleOrbPress() {
+    if (voiceState === "thinking") return; // busy
+
+    if (voiceState === "listening") {
+      // Stop recording → transcribe
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+      return;
+    }
+
+    if (voiceState === "speaking") {
+      // Barge-in: stop TTS, then immediately start listening
+      stopCurrentTTS();
+      await startListening();
+      return;
+    }
+
+    // idle
+    await startListening();
+  }
+
   function handleSendText() {
     if (!textInput.trim() || voiceState !== "idle") return;
     Keyboard.dismiss();
@@ -351,23 +345,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
     return bands[g] ?? g;
   }
 
-  const micColors: Record<VoiceState, string> = {
-    idle: accentColor,
-    listening: "#ef4444",
-    thinking: "#f59e0b",
-    speaking: "#10b981",
-  };
-
-  const micIconNames: Record<VoiceState, any> = {
-    idle: "mic",
-    listening: "radio-button-on",
-    thinking: "ellipsis-horizontal",
-    speaking: "volume-high",
-  };
-
-  const micColor = micColors[voiceState];
   const isDisabled = voiceState !== "idle"; // for text input / send button
-  const micButtonDisabled = voiceState === "thinking" || voiceState === "speaking";
 
   // ─── Welcome screen ───────────────────────────────────────────────────────
 
@@ -490,214 +468,258 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top", "bottom"]}>
-      {/* Header */}
+
+      {/* ── Slim top bar ── */}
       <View
         style={{
           paddingHorizontal: 20,
-          paddingTop: 14,
-          paddingBottom: 14,
+          paddingTop: 10,
+          paddingBottom: 10,
           flexDirection: "row",
           alignItems: "center",
-          gap: 14,
-          borderBottomWidth: 1,
-          borderBottomColor: "#f1f1f4",
+          gap: 12,
+          backgroundColor: "#ffffff",
         }}
       >
-        <View
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 13,
-            backgroundColor: accentColor + "20",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ fontSize: 20 }}>{subjectEmoji}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: "700", color: "#18181b", letterSpacing: -0.3 }}>
-            {agent.name}
-          </Text>
-          <Text style={{ fontSize: 12, color: "#71717a", fontWeight: "500", marginTop: 1 }}>
-            {agent.subject} · {gradeLabel(agent.gradeLevel ?? "6")}
-          </Text>
-        </View>
-        {/* Stop TTS button when speaking */}
-        {voiceState === "speaking" && (
-          <Pressable
-            onPress={stopCurrentTTS}
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              backgroundColor: "#fef2f2",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons name="stop" size={16} color="#ef4444" />
-          </Pressable>
-        )}
+        {/* Accent dot */}
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: accentColor }} />
+        <Text style={{ fontSize: 13, fontWeight: "700", color: "#18181b", letterSpacing: 0.2, flex: 1 }}>
+          {agent.name}
+        </Text>
+        <Text style={{ fontSize: 12, color: "#a1a1aa" }}>
+          {agent.subject} · {gradeLabel(agent.gradeLevel ?? "6")}
+        </Text>
       </View>
 
-      {/* Conversation */}
+      {/* thin rule */}
+      <View style={{ height: 1, backgroundColor: "#f2f2f5" }} />
+
+      {/* ── Conversation ── */}
       <ScrollView
         ref={scrollRef}
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingVertical: 20, paddingHorizontal: 16, gap: 10 }}
+        style={{ flex: 1, backgroundColor: "#ffffff" }}
+        contentContainerStyle={{ paddingBottom: 16 }}
         keyboardShouldPersistTaps="handled"
       >
-        {greetingLoading ? (
+        {/* ── Greeting hero ── */}
+        <View
+          style={{
+            paddingHorizontal: 22,
+            paddingTop: 32,
+            paddingBottom: 28,
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: 16,
+          }}
+        >
+          {/* Large avatar */}
           <View
             style={{
-              alignSelf: "flex-start",
-              backgroundColor: "#f5f5ff",
-              borderRadius: 18,
-              borderBottomLeftRadius: 4,
-              paddingHorizontal: 18,
-              paddingVertical: 14,
-              maxWidth: "80%",
-              borderWidth: 1,
-              borderColor: "#e8e8f8",
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: accentColor + "18",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              shadowColor: accentColor,
+              shadowOpacity: 0.2,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 4 },
             }}
           >
-            <Text style={{ color: "#a1a1aa", fontSize: 14, letterSpacing: 4 }}>···</Text>
+            <Text style={{ fontSize: 34 }}>{subjectEmoji}</Text>
           </View>
-        ) : null}
-
-        {messages.map((msg) => (
-          <View
-            key={msg.id}
-            style={{
-              maxWidth: "82%",
-              borderRadius: 18,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-              borderBottomRightRadius: msg.role === "user" ? 4 : 18,
-              borderBottomLeftRadius: msg.role === "user" ? 18 : 4,
-              backgroundColor: msg.role === "user" ? "#3730a3" : "#f5f5ff",
-              borderWidth: msg.role === "assistant" ? 1 : 0,
-              borderColor: "#e8e8f8",
-              shadowColor: "#000",
-              shadowOpacity: 0.04,
-              shadowRadius: 4,
-              shadowOffset: { width: 0, height: 2 },
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 15,
-                lineHeight: 23,
-                color: msg.role === "user" ? "#ffffff" : "#1e1b4b",
-              }}
-            >
-              {msg.text}
+          {/* Hero text */}
+          <View style={{ flex: 1, paddingTop: 6 }}>
+            <Text style={{ fontSize: 16, color: "#71717a", fontWeight: "500", marginBottom: 4 }}>
+              Hi there!
+            </Text>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: "#18181b", letterSpacing: -0.5, lineHeight: 30 }}>
+              How can I{"\n"}help you?
             </Text>
           </View>
-        ))}
-      </ScrollView>
+        </View>
 
-      {/* Controls */}
-      <View
-        style={{
-          borderTopWidth: 1,
-          borderTopColor: "#f1f1f4",
-          backgroundColor: "#ffffff",
-          paddingTop: 16,
-          paddingBottom: 16,
-          paddingHorizontal: 20,
-          shadowColor: "#000",
-          shadowOpacity: 0.04,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: -4 },
-        }}
-      >
-        {/* Mic button — shown when mic is available */}
-        {showMicButton && (
-          <View style={{ alignItems: "center", marginBottom: 16 }}>
-            <View
-              style={{
-                width: 96,
-                height: 96,
-                borderRadius: 48,
-                backgroundColor: micColor + "18",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <Pressable
-                  onPress={handleMicPress}
-                  disabled={micButtonDisabled}
+        {/* ── Loading state ── */}
+        {greetingLoading && (
+          <View style={{ paddingHorizontal: 22, marginBottom: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: accentColor + "18", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Text style={{ fontSize: 16 }}>{subjectEmoji}</Text>
+              </View>
+              <View style={{ backgroundColor: "#f6f6f9", borderRadius: 18, borderBottomLeftRadius: 4, paddingHorizontal: 16, paddingVertical: 12 }}>
+                <Text style={{ color: "#c4c4c8", fontSize: 20, letterSpacing: 5 }}>···</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* ── Messages ── */}
+        <View style={{ paddingHorizontal: 16, gap: 10 }}>
+          {messages.map((msg, idx) => {
+            const isUser = msg.role === "user";
+            const prevIsUser = idx > 0 && messages[idx - 1].role === "user";
+            const showAvatar = !isUser && !prevIsUser;
+
+            return isUser ? (
+              /* User: soft right-aligned card */
+              <View key={msg.id} style={{ alignSelf: "flex-end", maxWidth: "80%", marginBottom: 2 }}>
+                <View
                   style={{
-                    width: 76,
-                    height: 76,
-                    borderRadius: 38,
-                    backgroundColor: micColor,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    shadowColor: micColor,
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.45,
-                    shadowRadius: 14,
-                    elevation: 10,
-                    opacity: micButtonDisabled ? 0.6 : 1,
+                    backgroundColor: "#f4f4f8",
+                    borderRadius: 22,
+                    borderBottomRightRadius: 5,
+                    paddingHorizontal: 18,
+                    paddingVertical: 13,
                   }}
                 >
-                  <Ionicons name={micIconNames[voiceState]} size={30} color="white" />
-                </Pressable>
-              </Animated.View>
-            </View>
+                  <Text style={{ fontSize: 15.5, lineHeight: 24, color: "#18181b", fontWeight: "400" }}>
+                    {msg.text}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              /* Agent: avatar + floating card */
+              <View key={msg.id} style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, maxWidth: "88%", marginBottom: 2 }}>
+                {/* Avatar — only shown on first in a run */}
+                <View style={{ width: 34, flexShrink: 0 }}>
+                  {showAvatar ? (
+                    <View
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 17,
+                        backgroundColor: accentColor + "18",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: 16 }}>{subjectEmoji}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                {/* Card */}
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#ffffff",
+                    borderRadius: 22,
+                    borderBottomLeftRadius: 5,
+                    paddingHorizontal: 18,
+                    paddingVertical: 14,
+                    shadowColor: "#000",
+                    shadowOpacity: 0.07,
+                    shadowRadius: 12,
+                    shadowOffset: { width: 0, height: 3 },
+                    borderWidth: 1,
+                    borderColor: "#f0f0f4",
+                  }}
+                >
+                  <Text style={{ fontSize: 15.5, lineHeight: 25, color: "#18181b" }}>
+                    {msg.text}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+
+      {/* ── Controls ── */}
+      <View
+        style={{
+          backgroundColor: "#ffffff",
+          paddingTop: 12,
+          paddingBottom: 18,
+          paddingHorizontal: 20,
+          borderTopWidth: 1,
+          borderTopColor: "#f2f2f5",
+        }}
+      >
+        {/* Voice Orb */}
+        {showMicButton && (
+          <View style={{ alignItems: "center", marginBottom: 16 }}>
+            <Pressable
+              onPress={handleOrbPress}
+              disabled={voiceState === "thinking"}
+              hitSlop={24}
+              style={{ opacity: voiceState === "thinking" ? 0.75 : 1 }}
+            >
+              <VoiceOrb state={voiceState} size={130} />
+            </Pressable>
             <Text
               style={{
-                fontSize: 12,
+                fontSize: 13,
                 color: "#a1a1aa",
                 marginTop: 10,
                 letterSpacing: 0.3,
+                fontWeight: "500",
               }}
             >
               {statusText}
             </Text>
+            {voiceState === "speaking" && (
+              <Pressable
+                onPress={() => { stopCurrentTTS(); idleStatus(); }}
+                style={{
+                  marginTop: 8,
+                  paddingHorizontal: 20,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  backgroundColor: "#fef2f2",
+                  borderWidth: 1,
+                  borderColor: "#fecaca",
+                }}
+              >
+                <Text style={{ fontSize: 12, color: "#ef4444", fontWeight: "700", letterSpacing: 0.4 }}>
+                  ■  Stop
+                </Text>
+              </Pressable>
+            )}
           </View>
         )}
 
-        {/* Divider */}
         {showMicButton && (
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: "#f4f4f5" }} />
-            <Text style={{ fontSize: 11, color: "#d4d4d8", marginHorizontal: 12, fontWeight: "500" }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: "#f2f2f5" }} />
+            <Text style={{ fontSize: 11, color: "#d4d4d8", marginHorizontal: 10, fontWeight: "600", letterSpacing: 0.8, textTransform: "uppercase" }}>
               or type
             </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: "#f4f4f5" }} />
+            <View style={{ flex: 1, height: 1, backgroundColor: "#f2f2f5" }} />
           </View>
         )}
 
         {!showMicButton && (
-          <Text style={{ fontSize: 12, color: "#a1a1aa", textAlign: "center", marginBottom: 10, letterSpacing: 0.3 }}>
+          <Text style={{ fontSize: 12, color: "#a1a1aa", textAlign: "center", marginBottom: 10 }}>
             {statusText}
           </Text>
         )}
 
-        {/* Text input */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        {/* Input row */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            backgroundColor: "#f6f6f9",
+            borderRadius: 28,
+            paddingHorizontal: 6,
+            paddingVertical: 6,
+          }}
+        >
           <TextInput
             value={textInput}
             onChangeText={setTextInput}
-            placeholder="Type your question…"
-            placeholderTextColor="#c4c4c8"
+            placeholder="Ask me anything…"
+            placeholderTextColor="#b0b0b8"
             editable={!isDisabled}
             returnKeyType="send"
             onSubmitEditing={handleSendText}
             style={{
               flex: 1,
-              height: 46,
-              borderRadius: 23,
-              borderWidth: 1.5,
-              borderColor: isDisabled ? "#f4f4f5" : accentColor + "50",
-              backgroundColor: isDisabled ? "#fafafa" : "#ffffff",
-              paddingHorizontal: 18,
+              height: 44,
+              paddingHorizontal: 16,
               fontSize: 15,
               color: "#18181b",
             }}
@@ -706,22 +728,22 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
             onPress={handleSendText}
             disabled={isDisabled || !textInput.trim()}
             style={{
-              width: 46,
-              height: 46,
-              borderRadius: 23,
-              backgroundColor: isDisabled || !textInput.trim() ? "#f4f4f5" : accentColor,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: isDisabled || !textInput.trim() ? "#e8e8ee" : accentColor,
               alignItems: "center",
               justifyContent: "center",
               shadowColor: accentColor,
               shadowOpacity: isDisabled || !textInput.trim() ? 0 : 0.35,
               shadowRadius: 8,
-              shadowOffset: { width: 0, height: 4 },
+              shadowOffset: { width: 0, height: 3 },
             }}
           >
             <Ionicons
               name="arrow-up"
               size={20}
-              color={isDisabled || !textInput.trim() ? "#a1a1aa" : "#ffffff"}
+              color={isDisabled || !textInput.trim() ? "#b0b0b8" : "#ffffff"}
             />
           </Pressable>
         </View>
@@ -735,11 +757,11 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
                 ? [{ id: "greeting", role: "assistant", text: greetingTextRef.current }]
                 : []);
               setVoiceState("idle");
-              setStatusText(showMicButton ? "Tap the mic or type below" : "Voice unavailable — type your question.");
+              setStatusText(showMicButton ? "Tap the orb to speak" : "Voice unavailable — type your question.");
             }}
-            style={{ alignItems: "center", marginTop: 14 }}
+            style={{ alignItems: "center", marginTop: 12 }}
           >
-            <Text style={{ fontSize: 12, color: "#c4c4c8" }}>Clear conversation</Text>
+            <Text style={{ fontSize: 12, color: "#d4d4d8", letterSpacing: 0.2 }}>Clear conversation</Text>
           </Pressable>
         )}
       </View>

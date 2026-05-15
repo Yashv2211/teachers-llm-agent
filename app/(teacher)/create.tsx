@@ -101,6 +101,7 @@ export default function CreateAgentScreen() {
   const [librarySubject, setLibrarySubject] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; subject?: string; systemPrompt?: string }>({});
   const [extractError, setExtractError] = useState("");
 
   function applyTemplate(index: number) {
@@ -148,6 +149,7 @@ export default function CreateAgentScreen() {
           setExtractError("File extraction requires opening the app in a web browser.");
           return;
         }
+        if (file.size > 10 * 1024 * 1024) { setExtractError("File too large — max 10MB. Try a smaller document."); return; }
         let text = "";
         const ext = asset.name.split(".").pop()?.toLowerCase();
         if (ext === "pdf") text = await extractTextFromPDF(file);
@@ -199,9 +201,12 @@ export default function CreateAgentScreen() {
   async function handleSave() {
     if (!user) return;
     setFormError("");
-    if (!name.trim()) { setFormError("Please give your agent a name."); return; }
-    if (!subject.trim()) { setFormError("Please enter a subject."); return; }
-    if (!systemPrompt.trim()) { setFormError("Please add instructions for your agent."); return; }
+    const errs: typeof fieldErrors = {};
+    if (!name.trim()) errs.name = "Agent name is required.";
+    if (!subject.trim()) errs.subject = "Subject is required.";
+    if (!systemPrompt.trim()) errs.systemPrompt = "Agent instructions are required.";
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) return;
 
     setSaving(true);
     try {
@@ -241,10 +246,10 @@ export default function CreateAgentScreen() {
             <Text style={{ fontSize: 11, fontWeight: "700", color: "#6366f1", letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
               Create
             </Text>
-            <Text style={{ fontSize: 30, fontWeight: "800", color: "#18181b", letterSpacing: -0.8 }} className="dark:text-white">
+            <Text style={{ fontSize: 30, fontWeight: "800", letterSpacing: -0.8 }} className="text-zinc-900 dark:text-white">
               New Agent
             </Text>
-            <Text style={{ fontSize: 13, color: "#a1a1aa", marginTop: 4 }}>
+            <Text style={{ fontSize: 13, marginTop: 4 }} className="text-zinc-400">
               Set up a voice tutor for your students
             </Text>
           </View>
@@ -283,15 +288,17 @@ export default function CreateAgentScreen() {
 
           {/* Name */}
           <SectionLabel>Agent name</SectionLabel>
-          <TextInput value={name} onChangeText={setName} placeholder="e.g. Chapter 4 Verbs Helper" placeholderTextColor="#c4c4c8"
-            style={{ marginBottom: 20 }}
+          <TextInput value={name} onChangeText={(v) => { setName(v); if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined })); }} placeholder="e.g. Chapter 4 Verbs Helper" placeholderTextColor="#c4c4c8"
+            style={{ marginBottom: fieldErrors.name ? 4 : 20, borderColor: fieldErrors.name ? "#ef4444" : undefined }}
             className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+          {fieldErrors.name ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.name}</Text> : null}
 
           {/* Subject */}
           <SectionLabel>Subject</SectionLabel>
-          <TextInput value={subject} onChangeText={(v) => { setSubject(v); setLibrarySubject(v); }} placeholder="e.g. English – Verbs" placeholderTextColor="#c4c4c8"
-            style={{ marginBottom: 20 }}
+          <TextInput value={subject} onChangeText={(v) => { setSubject(v); setLibrarySubject(v); if (fieldErrors.subject) setFieldErrors((p) => ({ ...p, subject: undefined })); }} placeholder="e.g. English – Verbs" placeholderTextColor="#c4c4c8"
+            style={{ marginBottom: fieldErrors.subject ? 4 : 20, borderColor: fieldErrors.subject ? "#ef4444" : undefined }}
             className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+          {fieldErrors.subject ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.subject}</Text> : null}
 
           {/* Grade level — 1-12 grid */}
           <SectionLabel>Grade level</SectionLabel>
@@ -348,11 +355,12 @@ export default function CreateAgentScreen() {
 
           {/* Instructions */}
           <SectionLabel>Agent instructions</SectionLabel>
-          <TextInput value={systemPrompt} onChangeText={setSystemPrompt}
+          <TextInput value={systemPrompt} onChangeText={(v) => { setSystemPrompt(v); if (fieldErrors.systemPrompt) setFieldErrors((p) => ({ ...p, systemPrompt: undefined })); }}
             placeholder="Describe how the agent should behave, what topics to cover, and how to interact with students…"
             placeholderTextColor="#c4c4c8" multiline numberOfLines={5} textAlignVertical="top"
-            style={{ marginBottom: 20, minHeight: 120 }}
+            style={{ marginBottom: fieldErrors.systemPrompt ? 4 : 20, minHeight: 120, borderColor: fieldErrors.systemPrompt ? "#ef4444" : undefined }}
             className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+          {fieldErrors.systemPrompt ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.systemPrompt}</Text> : null}
 
           {/* Context ingestion */}
           <SectionLabel>Add context (optional)</SectionLabel>
@@ -503,8 +511,8 @@ export default function CreateAgentScreen() {
 
           {/* Form error */}
           {formError ? (
-            <View style={{ marginTop: 16, backgroundColor: "#fef2f2", borderRadius: 12, borderWidth: 1, borderColor: "#fecaca", paddingHorizontal: 16, paddingVertical: 12 }}>
-              <Text style={{ color: "#dc2626", fontSize: 14, fontWeight: "500" }}>{formError}</Text>
+            <View style={{ marginTop: 16, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }} className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+              <Text style={{ fontSize: 14, fontWeight: "500" }} className="text-red-600 dark:text-red-400">{formError}</Text>
             </View>
           ) : null}
 
@@ -539,11 +547,11 @@ export default function CreateAgentScreen() {
 function SectionLabel({ children }: { children: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-      <View style={{ flex: 1, height: 1, backgroundColor: "#e4e4e7" }} />
-      <Text style={{ fontSize: 10, fontWeight: "700", color: "#a1a1aa", letterSpacing: 1.5, textTransform: "uppercase" }}>
+      <View style={{ flex: 1, height: 1 }} className="bg-zinc-200 dark:bg-zinc-700" />
+      <Text style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.5, textTransform: "uppercase" }} className="text-zinc-400 dark:text-zinc-500">
         {children}
       </Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: "#e4e4e7" }} />
+      <View style={{ flex: 1, height: 1 }} className="bg-zinc-200 dark:bg-zinc-700" />
     </View>
   );
 }
