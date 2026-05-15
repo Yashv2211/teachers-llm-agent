@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { id } from "@instantdb/react-native";
-import { generateGreeting, GroqRateLimitError, sendMessage, transcribeAudio } from "@/lib/groq";
-import { speak, TTSHandle } from "@/lib/tts";
+import { speak } from "@/lib/tts";
 import { VoiceOrb } from "@/components/VoiceOrb";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
@@ -18,6 +17,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Groq is dynamically imported to keep it out of the shared entry bundle
+let _groqMod: typeof import("@/lib/groq") | null = null;
+async function loadGroq() {
+  if (!_groqMod) _groqMod = await import("@/lib/groq");
+  return _groqMod;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -125,25 +131,27 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
   // Generate opening greeting on mount
   useEffect(() => {
-    generateGreeting(
-      agent.systemPrompt,
-      agent.contextText ?? null,
-      agent.gradeLevel ?? "6",
-      agent.language ?? "English",
-      agent.subject ?? "",
-      agent.name ?? ""
-    )
-      .then((greeting) => {
-        greetingTextRef.current = greeting;
-        setMessages([{ id: "greeting", role: "assistant", text: greeting }]);
-        scrollToBottom();
-      })
-      .catch(() => {
-        // silently skip — student can still interact normally
-      })
-      .finally(() => {
-        setGreetingLoading(false);
-      });
+    loadGroq().then(({ generateGreeting }) => {
+      generateGreeting(
+        agent.systemPrompt,
+        agent.contextText ?? null,
+        agent.gradeLevel ?? "6",
+        agent.language ?? "English",
+        agent.subject ?? "",
+        agent.name ?? ""
+      )
+        .then((greeting) => {
+          greetingTextRef.current = greeting;
+          setMessages([{ id: "greeting", role: "assistant", text: greeting }]);
+          scrollToBottom();
+        })
+        .catch(() => {
+          // silently skip — student can still interact normally
+        })
+        .finally(() => {
+          setGreetingLoading(false);
+        });
+    });
   }, []);
 
 
@@ -214,6 +222,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
     setVoiceState("thinking");
     setStatusText("Thinking…");
 
+    const { sendMessage, GroqRateLimitError } = await loadGroq();
     try {
       const reply = await sendMessage(
         agent.systemPrompt,
@@ -274,6 +283,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
         setVoiceState("thinking");
         setStatusText("Thinking…");
 
+        const { transcribeAudio, GroqRateLimitError } = await loadGroq();
         try {
           const transcript = await transcribeAudio(audioBlob, agent.language);
           if (!transcript.trim()) {
@@ -420,7 +430,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
                   fontStyle: "italic",
                 }}
               >
-                "{greetingTextRef.current ?? `Hi! I'm your ${agent.subject} helper. Let's get started!`}"
+                {'"'}{greetingTextRef.current ?? `Hi! I'm your ${agent.subject} helper. Let's get started!`}{'"'}
               </Text>
             )}
           </View>
@@ -428,6 +438,8 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
           {/* Start button */}
           <Pressable
             disabled={greetingLoading}
+            accessibilityLabel="Start learning"
+            accessibilityRole="button"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setStarted(true);
@@ -547,7 +559,11 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
         {/* ── Loading state ── */}
         {greetingLoading && (
-          <View style={{ paddingHorizontal: 22, marginBottom: 12 }}>
+          <View
+            style={{ paddingHorizontal: 22, marginBottom: 12 }}
+            accessibilityLabel="Loading greeting"
+            accessibilityState={{ busy: true }}
+          >
             <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
               <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: accentColor + "18", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Text style={{ fontSize: 16 }}>{subjectEmoji}</Text>
@@ -560,7 +576,11 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
         )}
 
         {/* ── Messages ── */}
-        <View style={{ paddingHorizontal: 16, gap: 10 }}>
+        <View
+          style={{ paddingHorizontal: 16, gap: 10 }}
+          accessibilityLiveRegion="polite"
+          accessibilityLabel="Conversation"
+        >
           {messages.map((msg, idx) => {
             const isUser = msg.role === "user";
             const prevIsUser = idx > 0 && messages[idx - 1].role === "user";
@@ -649,6 +669,15 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
               disabled={voiceState === "thinking"}
               hitSlop={24}
               style={{ opacity: voiceState === "thinking" ? 0.75 : 1 }}
+              accessibilityRole="button"
+              accessibilityLabel={
+                voiceState === "listening"
+                  ? "Stop recording"
+                  : voiceState === "speaking"
+                  ? "Interrupt and start recording"
+                  : "Start recording"
+              }
+              accessibilityState={{ disabled: voiceState === "thinking" }}
             >
               <VoiceOrb state={voiceState} size={130} />
             </Pressable>
@@ -666,6 +695,8 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
             {voiceState === "speaking" && (
               <Pressable
                 onPress={() => { stopCurrentTTS(); idleStatus(); }}
+                accessibilityRole="button"
+                accessibilityLabel="Stop playback"
                 style={{
                   marginTop: 8,
                   paddingHorizontal: 20,
@@ -722,6 +753,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
             editable={!isDisabled}
             returnKeyType="send"
             onSubmitEditing={handleSendText}
+            accessibilityLabel="Type your question"
             style={{
               flex: 1,
               height: 44,
@@ -733,6 +765,9 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
           <Pressable
             onPress={handleSendText}
             disabled={isDisabled || !textInput.trim()}
+            accessibilityRole="button"
+            accessibilityLabel="Send question"
+            accessibilityState={{ disabled: isDisabled || !textInput.trim() }}
             style={{
               width: 44,
               height: 44,
@@ -757,6 +792,8 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
         {/* Clear conversation */}
         {messages.length > 1 && (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Clear conversation"
             onPress={() => {
               stopCurrentTTS();
               setMessages(greetingTextRef.current

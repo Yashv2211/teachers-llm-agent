@@ -78,7 +78,7 @@ export default function DashboardScreen() {
       {offline && (
         <View style={{ backgroundColor: "#f59e0b", paddingVertical: 8, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
-          <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>You're offline — changes won't save</Text>
+          <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>{"You're offline — changes won't save"}</Text>
         </View>
       )}
 
@@ -115,7 +115,7 @@ export default function DashboardScreen() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
           <Text style={{ fontSize: 16, fontWeight: "700", textAlign: "center", marginBottom: 8 }} className="text-nuru-text-light dark:text-nuru-text">
-            Couldn't load your tutors
+            {"Couldn't load your tutors"}
           </Text>
           <Text style={{ fontSize: 14, textAlign: "center", marginBottom: 24 }} className="text-zinc-500 dark:text-zinc-400">
             Check your connection and try again.
@@ -196,6 +196,8 @@ export default function DashboardScreen() {
           <View style={{ position: "absolute", bottom: 24, right: 20, zIndex: 10 }}>
             <Pressable
               onPress={() => router.push("/(teacher)/create")}
+              accessibilityRole="button"
+              accessibilityLabel="Create new agent"
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
@@ -276,6 +278,9 @@ function AgentCard({
   return (
     <Pressable
       onPress={isConfirming ? undefined : onPress}
+      accessibilityRole="button"
+      accessibilityLabel={agent.name}
+      accessibilityHint="Tap to view and edit"
       style={({ pressed }) => ({
         borderRadius: 20,
         overflow: "hidden",
@@ -334,6 +339,8 @@ function AgentCard({
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   <Pressable
                     onPress={onDeleteCancel}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel delete"
                     style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
                     className="bg-nuru-elevated-light dark:bg-nuru-elevated"
                   >
@@ -343,6 +350,8 @@ function AgentCard({
                   </Pressable>
                   <Pressable
                     onPress={onDeleteConfirm}
+                    accessibilityRole="button"
+                    accessibilityLabel="Confirm delete"
                     style={{
                       paddingHorizontal: 12,
                       paddingVertical: 6,
@@ -359,6 +368,8 @@ function AgentCard({
                 <Pressable
                   onPress={onDeleteStart}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete ${agent.name}`}
                   style={{ width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" }}
                   className="bg-red-50 dark:bg-red-950"
                 >

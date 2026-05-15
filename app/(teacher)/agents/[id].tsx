@@ -66,7 +66,7 @@ export default function AgentDetailScreen() {
       <View className="flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-8">
         <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
         <Text style={{ fontSize: 16, fontWeight: "700", color: "#18181b", textAlign: "center", marginBottom: 8 }}>
-          Couldn't load this tutor
+          {"Couldn't load this tutor"}
         </Text>
         <Text style={{ fontSize: 14, color: "#71717a", textAlign: "center", marginBottom: 24 }}>
           Check your connection and try again.
@@ -291,7 +291,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           {/* Back + header */}
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
-            <Pressable onPress={() => router.back()} style={{ marginRight: 10, padding: 4 }}>
+            <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" style={{ marginRight: 10, padding: 4 }}>
               <Ionicons name="chevron-back" size={22} color="#F59E0B" />
             </Pressable>
             <Text style={{ flex: 1, fontSize: 20, fontWeight: "800", letterSpacing: -0.5 }} className="text-nuru-text-light dark:text-nuru-text" numberOfLines={1}>
@@ -300,10 +300,15 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
             {confirmDelete ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Pressable onPress={() => setConfirmDelete(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel delete"
                   style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: "#f4f4f5" }}>
                   <Text style={{ fontSize: 13, fontWeight: "600", color: "#52525b" }}>Cancel</Text>
                 </Pressable>
                 <Pressable onPress={handleDelete} disabled={deleting}
+                  accessibilityRole="button"
+                  accessibilityLabel="Confirm delete"
+                  accessibilityState={{ disabled: deleting }}
                   style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: "#ef4444" }}>
                   {deleting
                     ? <ActivityIndicator size="small" color="#fff" />
@@ -312,6 +317,8 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               </View>
             ) : (
               <Pressable onPress={() => setConfirmDelete(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Delete agent"
                 style={{ padding: 8, borderRadius: 10, backgroundColor: "#fef2f2" }}>
                 <Ionicons name="trash-outline" size={18} color="#ef4444" />
               </Pressable>
@@ -336,6 +343,8 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                 {shareLink}
               </Text>
               <Pressable onPress={copyLink}
+                accessibilityRole="button"
+                accessibilityLabel={copied ? "Link copied" : "Copy share link"}
                 style={{ backgroundColor: copied ? "#10b981" : "rgba(255,255,255,0.15)", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}>
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>{copied ? "Copied!" : "Copy"}</Text>
               </Pressable>
@@ -345,12 +354,14 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
           {/* Edit fields */}
           <SectionLabel>Agent name</SectionLabel>
           <TextInput value={name} onChangeText={(v) => { setName(v); if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined })); }}
+            accessibilityLabel="Agent name"
             style={{ marginBottom: fieldErrors.name ? 4 : 20, borderColor: fieldErrors.name ? "#ef4444" : undefined }}
             className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.name ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.name}</Text> : null}
 
           <SectionLabel>Subject</SectionLabel>
           <TextInput value={subject} onChangeText={(v) => { setSubject(v); setLibrarySubject(v); if (fieldErrors.subject) setFieldErrors((p) => ({ ...p, subject: undefined })); }}
+            accessibilityLabel="Subject"
             style={{ marginBottom: fieldErrors.subject ? 4 : 20, borderColor: fieldErrors.subject ? "#ef4444" : undefined }}
             className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.subject ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.subject}</Text> : null}
@@ -362,6 +373,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               const sel = gradeLevel === String(g);
               return (
                 <Pressable key={g} onPress={() => { setGradeLevel(String(g)); Haptics.selectionAsync(); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Grade ${g}`}
+                  accessibilityState={{ selected: sel }}
                   style={{
                     width: "22%",
                     margin: "1.5%",
@@ -390,6 +404,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               const sel = language === lang;
               return (
                 <Pressable key={lang} onPress={() => { setLanguage(lang); Haptics.selectionAsync(); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={lang}
+                  accessibilityState={{ selected: sel }}
                   style={{
                     borderRadius: 20,
                     paddingHorizontal: 16,
@@ -408,6 +425,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           <SectionLabel>Agent instructions</SectionLabel>
           <TextInput value={systemPrompt} onChangeText={(v) => { setSystemPrompt(v); if (fieldErrors.systemPrompt) setFieldErrors((p) => ({ ...p, systemPrompt: undefined })); }} multiline numberOfLines={5} textAlignVertical="top"
+            accessibilityLabel="Agent instructions"
             style={{ marginBottom: fieldErrors.systemPrompt ? 4 : 20, minHeight: 120, borderColor: fieldErrors.systemPrompt ? "#ef4444" : undefined }}
             className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.systemPrompt ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.systemPrompt}</Text> : null}
@@ -500,6 +518,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           {activeContextTab === "file" && (
             <Pressable onPress={handleFilePick} disabled={extracting}
+              accessibilityRole="button"
+              accessibilityLabel="Upload PDF or DOCX"
+              accessibilityState={{ disabled: extracting }}
               className="bg-white dark:bg-zinc-900 border border-dashed border-zinc-300 dark:border-zinc-600 rounded-2xl py-6 items-center justify-center active:scale-95">
               {extracting ? <ActivityIndicator color="#F59E0B" /> : (
                 <>
@@ -515,8 +536,12 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               <TextInput value={urlInput} onChangeText={setUrlInput}
                 placeholder={activeContextTab === "youtube" ? "https://youtube.com/watch?v=..." : "https://example.com/article"}
                 placeholderTextColor="#a1a1aa" autoCapitalize="none" keyboardType="url"
+                accessibilityLabel={activeContextTab === "youtube" ? "YouTube URL" : "Article URL"}
                 className="flex-1 bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
               <Pressable onPress={() => handleURLExtract()} disabled={extracting || !urlInput.trim()}
+                accessibilityRole="button"
+                accessibilityLabel="Extract content"
+                accessibilityState={{ disabled: extracting || !urlInput.trim() }}
                 className="bg-nuru-primary rounded-2xl px-4 items-center justify-center active:scale-95" style={{ opacity: !urlInput.trim() ? 0.5 : 1 }}>
                 {extracting ? <ActivityIndicator color="#0B1929" size="small" /> : <Text className="text-nuru-on-primary font-semibold">Extract</Text>}
               </Pressable>
@@ -540,7 +565,10 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                   </Text>
                   <Text className="flex-1 text-sm text-zinc-700 dark:text-zinc-300" numberOfLines={1}>{s.label}</Text>
                   {s.text.length > 0 && (
-                    <Pressable onPress={() => removeSource(i)} hitSlop={8} className="ml-2">
+                    <Pressable onPress={() => removeSource(i)} hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${s.label}`}
+                      className="ml-2">
                       <Text className="text-red-400 text-lg leading-none">×</Text>
                     </Pressable>
                   )}
@@ -551,7 +579,11 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           {/* Form error */}
           {formError ? (
-            <View style={{ marginTop: 16, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }} className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+            <View
+              style={{ marginTop: 16, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }}
+              className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+              accessibilityLiveRegion="assertive"
+            >
               <Text style={{ fontSize: 14, fontWeight: "500" }} className="text-red-600 dark:text-red-400">{formError}</Text>
             </View>
           ) : null}
@@ -559,6 +591,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
           {/* Save */}
           <View style={{ marginTop: 32, marginBottom: 8, paddingTop: 24, borderTopWidth: 1, borderTopColor: "#f4f4f5" }}>
             <Pressable onPress={handleSave} disabled={saving}
+              accessibilityRole="button"
+              accessibilityLabel={saved ? "Saved" : saving ? "Saving" : "Save changes"}
+              accessibilityState={{ disabled: saving }}
               style={({ pressed }) => ({
                 borderRadius: 18,
                 paddingVertical: 18,
@@ -601,6 +636,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                 <Pressable
                   onPress={handleSummarize}
                   disabled={summarizing}
+                  accessibilityRole="button"
+                  accessibilityLabel={summarizing ? "Summarizing" : "Summarize with AI"}
+                  accessibilityState={{ disabled: summarizing }}
                   style={({ pressed }) => ({
                     backgroundColor: summarizing ? "#1E3050" : pressed ? "#FBBF24" : "#F59E0B",
                     borderRadius: 14,

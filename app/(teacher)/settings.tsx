@@ -12,9 +12,9 @@ export default function SettingsScreen() {
       {
         text: "Sign out",
         style: "destructive",
-        onPress: () => {
+        onPress: async () => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          db.auth.signOut();
+          await db.auth.signOut();
         },
       },
     ]);

@@ -289,6 +289,7 @@ export default function CreateAgentScreen() {
           {/* Name */}
           <SectionLabel>Agent name</SectionLabel>
           <TextInput value={name} onChangeText={(v) => { setName(v); if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined })); }} placeholder="e.g. Chapter 4 Verbs Helper" placeholderTextColor="#c4c4c8"
+            accessibilityLabel="Agent name"
             style={{ marginBottom: fieldErrors.name ? 4 : 20, borderColor: fieldErrors.name ? "#ef4444" : undefined }}
             className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.name ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.name}</Text> : null}
@@ -296,6 +297,7 @@ export default function CreateAgentScreen() {
           {/* Subject */}
           <SectionLabel>Subject</SectionLabel>
           <TextInput value={subject} onChangeText={(v) => { setSubject(v); setLibrarySubject(v); if (fieldErrors.subject) setFieldErrors((p) => ({ ...p, subject: undefined })); }} placeholder="e.g. English – Verbs" placeholderTextColor="#c4c4c8"
+            accessibilityLabel="Subject"
             style={{ marginBottom: fieldErrors.subject ? 4 : 20, borderColor: fieldErrors.subject ? "#ef4444" : undefined }}
             className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.subject ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.subject}</Text> : null}
@@ -307,6 +309,9 @@ export default function CreateAgentScreen() {
               const sel = gradeLevel === String(g);
               return (
                 <Pressable key={g} onPress={() => { setGradeLevel(String(g)); Haptics.selectionAsync(); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Grade ${g}`}
+                  accessibilityState={{ selected: sel }}
                   style={{
                     width: "22%",
                     margin: "1.5%",
@@ -337,6 +342,9 @@ export default function CreateAgentScreen() {
               const lang = label;
               return (
                 <Pressable key={lang} onPress={() => { setLanguage(lang); Haptics.selectionAsync(); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={lang}
+                  accessibilityState={{ selected: sel }}
                   style={{
                     borderRadius: 20,
                     paddingHorizontal: 16,
@@ -358,6 +366,7 @@ export default function CreateAgentScreen() {
           <TextInput value={systemPrompt} onChangeText={(v) => { setSystemPrompt(v); if (fieldErrors.systemPrompt) setFieldErrors((p) => ({ ...p, systemPrompt: undefined })); }}
             placeholder="Describe how the agent should behave, what topics to cover, and how to interact with students…"
             placeholderTextColor="#c4c4c8" multiline numberOfLines={5} textAlignVertical="top"
+            accessibilityLabel="Agent instructions"
             style={{ marginBottom: fieldErrors.systemPrompt ? 4 : 20, minHeight: 120, borderColor: fieldErrors.systemPrompt ? "#ef4444" : undefined }}
             className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.systemPrompt ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.systemPrompt}</Text> : null}
@@ -457,6 +466,9 @@ export default function CreateAgentScreen() {
           {/* File tab */}
           {activeContextTab === "file" && (
             <Pressable onPress={handleFilePick} disabled={extracting}
+              accessibilityRole="button"
+              accessibilityLabel="Upload PDF or DOCX"
+              accessibilityState={{ disabled: extracting }}
               className="bg-nuru-surface-light dark:bg-nuru-surface border border-dashed border-nuru-border-light dark:border-nuru-border rounded-2xl py-6 items-center justify-center active:scale-95">
               {extracting ? <ActivityIndicator color="#F59E0B" /> : (
                 <>
@@ -474,8 +486,12 @@ export default function CreateAgentScreen() {
               <TextInput value={urlInput} onChangeText={setUrlInput}
                 placeholder={activeContextTab === "youtube" ? "https://youtube.com/watch?v=..." : "https://example.com/article"}
                 placeholderTextColor="#a1a1aa" autoCapitalize="none" keyboardType="url"
+                accessibilityLabel={activeContextTab === "youtube" ? "YouTube URL" : "Article URL"}
                 className="flex-1 bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
               <Pressable onPress={() => handleURLExtract()} disabled={extracting || !urlInput.trim()}
+                accessibilityRole="button"
+                accessibilityLabel="Extract content"
+                accessibilityState={{ disabled: extracting || !urlInput.trim() }}
                 className="bg-nuru-primary rounded-2xl px-4 items-center justify-center active:scale-95" style={{ opacity: !urlInput.trim() ? 0.5 : 1 }}>
                 {extracting ? <ActivityIndicator color="white" size="small" /> : <Text className="text-white font-semibold">Extract</Text>}
               </Pressable>
@@ -501,7 +517,10 @@ export default function CreateAgentScreen() {
                     {s.type === "pdf" ? "📄" : s.type === "docx" ? "📝" : s.type === "youtube" ? "▶️" : s.type === "library" ? "📚" : "🌐"}
                   </Text>
                   <Text className="flex-1 text-sm text-zinc-700 dark:text-zinc-300" numberOfLines={1}>{s.label}</Text>
-                  <Pressable onPress={() => removeSource(i)} hitSlop={8} className="ml-2">
+                  <Pressable onPress={() => removeSource(i)} hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${s.label}`}
+                    className="ml-2">
                     <Text className="text-red-400 text-lg leading-none">×</Text>
                   </Pressable>
                 </View>
@@ -511,7 +530,11 @@ export default function CreateAgentScreen() {
 
           {/* Form error */}
           {formError ? (
-            <View style={{ marginTop: 16, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }} className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+            <View
+              style={{ marginTop: 16, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }}
+              className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+              accessibilityLiveRegion="assertive"
+            >
               <Text style={{ fontSize: 14, fontWeight: "500" }} className="text-red-600 dark:text-red-400">{formError}</Text>
             </View>
           ) : null}
@@ -519,6 +542,9 @@ export default function CreateAgentScreen() {
           {/* Save */}
           <View style={{ marginTop: 32, marginBottom: 8, paddingTop: 24, borderTopWidth: 1, borderTopColor: "#f4f4f5" }}>
             <Pressable onPress={handleSave} disabled={saving}
+              accessibilityRole="button"
+              accessibilityLabel={saving ? "Saving" : "Create agent"}
+              accessibilityState={{ disabled: saving }}
               style={({ pressed }) => ({
                 backgroundColor: "#F59E0B",
                 borderRadius: 18,
