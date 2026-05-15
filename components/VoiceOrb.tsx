@@ -28,28 +28,28 @@ interface PaletteEntry {
 
 const PALETTES: Record<OrbState, PaletteEntry> = {
   idle: {
-    core: "#a5b4fc", // soft indigo
-    midA: "#818cf8",
-    midB: "#c7d2fe",
-    rim: "#1e1b4b",
+    core: "#F59E0B",
+    midA: "#FBBF24",
+    midB: "#F0A830",
+    rim: "#0B1929",
   },
   speaking: {
-    core: "#a78bfa", // violet
-    midA: "#60a5fa", // blue
-    midB: "#f0abfc", // pink
-    rim: "#1e1b4b", // deep indigo
+    core: "#F59E0B",
+    midA: "#06B6D4",
+    midB: "#FBBF24",
+    rim: "#0B1929",
   },
   thinking: {
-    core: "#c084fc",
-    midA: "#7c3aed",
-    midB: "#a78bfa",
-    rim: "#1e1b4b",
+    core: "#60A5FA",
+    midA: "#06B6D4",
+    midB: "#93C5FD",
+    rim: "#0B1929",
   },
   listening: {
-    core: "#fb7185",
-    midA: "#f43f5e",
-    midB: "#fda4af",
-    rim: "#450a0a",
+    core: "#FB7185",
+    midA: "#F43F5E",
+    midB: "#FDA4AF",
+    rim: "#450A0A",
   },
 };
 

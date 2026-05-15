@@ -37,7 +37,7 @@ export default function LoginScreen() {
     try {
       await db.auth.signInWithMagicCode({ email: email.trim(), code: code.trim() });
     } catch (err: any) {
-      Alert.alert("Invalid code", "Please check the code and try again.");
+      Alert.alert("That code doesn't match", "Try again.");
       setLoading(false);
     }
   }
@@ -48,25 +48,42 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+    <SafeAreaView className="flex-1 bg-nuru-bg-light dark:bg-nuru-bg">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         <View className="flex-1 items-center justify-center px-8">
-          {/* Logo */}
-          <View className="w-24 h-24 rounded-3xl bg-indigo-600 items-center justify-center mb-8 shadow-lg">
-            <Text className="text-5xl">🎓</Text>
+          {/* Nuru wordmark */}
+          <View style={{ alignItems: "center", marginBottom: 32 }}>
+            <View style={{
+              width: 64,
+              height: 64,
+              borderRadius: 9999,
+              backgroundColor: "#F59E0B",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+              shadowColor: "#F59E0B",
+              shadowOpacity: 0.4,
+              shadowRadius: 20,
+              shadowOffset: { width: 0, height: 8 },
+            }}>
+              <Text style={{ fontSize: 28, fontWeight: "800", color: "#0B1929", letterSpacing: -1 }}>N</Text>
+            </View>
+            <Text style={{ fontSize: 36, fontWeight: "800", letterSpacing: -1.5, color: "#0B1929" }} className="dark:text-nuru-text">
+              Nuru
+            </Text>
           </View>
 
-          <Text className="text-4xl font-bold text-zinc-900 dark:text-white text-center mb-3">
-            Nuru
+          {/* Headline */}
+          <Text style={{ fontSize: 20, fontWeight: "700", textAlign: "center", marginBottom: 6, letterSpacing: -0.3 }} className="text-nuru-text-light dark:text-nuru-text">
+            Welcome to Nuru
           </Text>
-          <Text className="text-lg text-zinc-500 dark:text-zinc-400 text-center mb-2">
-            AI voice agents for your classroom
-          </Text>
-          <Text className="text-sm text-zinc-400 dark:text-zinc-500 text-center mb-10 max-w-xs">
-            Create interactive voice agents grounded in your course materials.
+          <Text style={{ fontSize: 15, textAlign: "center", marginBottom: 32, lineHeight: 22 }} className="text-nuru-secondary-light dark:text-nuru-secondary">
+            {step === "email"
+              ? "Enter your email to get started — no password required."
+              : `Check your email for a 6-digit code.`}
           </Text>
 
           {/* Input */}
@@ -76,29 +93,29 @@ export default function LoginScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="Your email address"
-                placeholderTextColor="#a1a1aa"
+                placeholderTextColor="#7A8FA8"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
                 onSubmitEditing={handleSendCode}
-                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-4 text-base text-zinc-900 dark:text-white"
+                className="w-full bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-4 text-base text-nuru-text-light dark:text-nuru-text"
               />
             ) : (
               <>
-                <Text className="text-sm text-zinc-500 text-center mb-3">
-                  Enter the 6-digit code sent to{" "}
-                  <Text className="font-semibold text-zinc-800 dark:text-zinc-200">{email}</Text>
+                <Text style={{ fontSize: 13, textAlign: "center", marginBottom: 12 }} className="text-nuru-secondary-light dark:text-nuru-secondary">
+                  Sent to{" "}
+                  <Text style={{ fontWeight: "700" }} className="text-nuru-text-light dark:text-nuru-text">{email}</Text>
                 </Text>
                 <TextInput
                   value={code}
                   onChangeText={setCode}
                   placeholder="000000"
-                  placeholderTextColor="#a1a1aa"
+                  placeholderTextColor="#7A8FA8"
                   keyboardType="number-pad"
                   maxLength={6}
                   autoFocus
                   onSubmitEditing={handleVerifyCode}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-4 text-2xl text-center tracking-widest text-zinc-900 dark:text-white"
+                  className="w-full bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-4 text-2xl text-center tracking-widest text-nuru-text-light dark:text-nuru-text"
                 />
               </>
             )}
@@ -108,21 +125,34 @@ export default function LoginScreen() {
           <Pressable
             disabled={loading || (step === "email" ? !email.trim() : !code.trim())}
             onPress={handleSignIn}
-            className="w-full bg-indigo-600 rounded-2xl py-4 items-center justify-center active:scale-95"
-            style={{ opacity: loading || (step === "email" ? !email.trim() : !code.trim()) ? 0.6 : 1 }}
+            style={({ pressed }) => ({
+              width: "100%",
+              backgroundColor: "#F59E0B",
+              borderRadius: 9999,
+              paddingVertical: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: loading || (step === "email" ? !email.trim() : !code.trim()) ? 0.5 : pressed ? 0.85 : 1,
+              shadowColor: "#F59E0B",
+              shadowOpacity: 0.35,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
+            })}
           >
             {loading ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color="#0B1929" />
             ) : (
-              <Text className="text-white font-semibold text-base">
+              <Text style={{ color: "#0B1929", fontWeight: "700", fontSize: 16 }}>
                 {step === "email" ? "Send Code" : "Sign In"}
               </Text>
             )}
           </Pressable>
 
           {step === "code" && (
-            <Pressable onPress={() => { setStep("email"); setCode(""); }} className="mt-4">
-              <Text className="text-sm text-indigo-600">Use a different email</Text>
+            <Pressable onPress={() => { setStep("email"); setCode(""); }} style={{ marginTop: 16 }}>
+              <Text style={{ fontSize: 14 }} className="text-nuru-primary">
+                Send a new code
+              </Text>
             </Pressable>
           )}
         </View>
