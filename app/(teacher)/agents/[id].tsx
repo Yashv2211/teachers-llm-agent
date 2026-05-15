@@ -44,7 +44,7 @@ const GRADE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 export default function AgentDetailScreen() {
   const { id: agentId } = useLocalSearchParams<{ id: string }>();
   const { user } = db.useAuth();
-  const [retryCount, setRetryCount] = useState(0);
+  const [, setRetryCount] = useState(0);
   const retry = useCallback(() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setRetryCount((c) => c + 1); }, []);
 
   const { isLoading, error, data } = db.useQuery(

@@ -152,6 +152,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
           setGreetingLoading(false);
         });
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 

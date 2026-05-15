@@ -48,7 +48,7 @@ function useOffline() {
 
 export default function DashboardScreen() {
   const { user } = db.useAuth();
-  const [retryCount, setRetryCount] = useState(0);
+  const [, setRetryCount] = useState(0);
   const { isLoading, error, data } = db.useQuery(
     user
       ? {

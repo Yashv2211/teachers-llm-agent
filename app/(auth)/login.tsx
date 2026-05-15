@@ -36,7 +36,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await db.auth.signInWithMagicCode({ email: email.trim(), code: code.trim() });
-    } catch (err: any) {
+    } catch {
       Alert.alert("That code doesn't match", "Try again.");
       setLoading(false);
     }
