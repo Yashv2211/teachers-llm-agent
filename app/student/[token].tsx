@@ -17,13 +17,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// Groq is dynamically imported to keep it out of the shared entry bundle
-let _groqMod: typeof import("@/lib/groq") | null = null;
-async function loadGroq() {
-  if (!_groqMod) _groqMod = await import("@/lib/groq");
-  return _groqMod;
-}
+import { generateGreeting, GroqRateLimitError, sendMessage, transcribeAudio } from "@/lib/groq";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -131,27 +125,25 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
   // Generate opening greeting on mount
   useEffect(() => {
-    loadGroq().then(({ generateGreeting }) => {
-      generateGreeting(
-        agent.systemPrompt,
-        agent.contextText ?? null,
-        agent.gradeLevel ?? "6",
-        agent.language ?? "English",
-        agent.subject ?? "",
-        agent.name ?? ""
-      )
-        .then((greeting) => {
-          greetingTextRef.current = greeting;
-          setMessages([{ id: "greeting", role: "assistant", text: greeting }]);
-          scrollToBottom();
-        })
-        .catch(() => {
-          // silently skip — student can still interact normally
-        })
-        .finally(() => {
-          setGreetingLoading(false);
-        });
-    });
+    (async () => {
+      try {
+        const greeting = await generateGreeting(
+          agent.systemPrompt,
+          agent.contextText ?? null,
+          agent.gradeLevel ?? "6",
+          agent.language ?? "English",
+          agent.subject ?? "",
+          agent.name ?? ""
+        );
+        greetingTextRef.current = greeting;
+        setMessages([{ id: "greeting", role: "assistant", text: greeting }]);
+        scrollToBottom();
+      } catch {
+        // silently skip — student can still interact normally
+      } finally {
+        setGreetingLoading(false);
+      }
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -223,7 +215,6 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
     setVoiceState("thinking");
     setStatusText("Thinking…");
 
-    const { sendMessage, GroqRateLimitError } = await loadGroq();
     try {
       const reply = await sendMessage(
         agent.systemPrompt,
@@ -284,7 +275,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
         setVoiceState("thinking");
         setStatusText("Thinking…");
 
-        const { transcribeAudio, GroqRateLimitError } = await loadGroq();
+
         try {
           const transcript = await transcribeAudio(audioBlob, agent.language);
           if (!transcript.trim()) {
