@@ -1,23 +1,25 @@
 import { db } from "@/lib/db";
 import * as Haptics from "expo-haptics";
-import { Alert, Pressable, Text, View } from "react-native";
+import { router } from "expo-router";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
   const { user } = db.useAuth();
+  const [confirming, setConfirming] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  function handleSignOut() {
-    Alert.alert("Sign out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign out",
-        style: "destructive",
-        onPress: async () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          await db.auth.signOut();
-        },
-      },
-    ]);
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await db.auth.signOut();
+      router.replace("/(auth)/login");
+    } finally {
+      setSigningOut(false);
+      setConfirming(false);
+    }
   }
 
   return (
@@ -50,12 +52,35 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          <Pressable
-            onPress={handleSignOut}
-            className="px-4 py-4 active:bg-nuru-elevated-light dark:active:bg-nuru-elevated"
-          >
-            <Text className="text-nuru-error font-medium">Sign out</Text>
-          </Pressable>
+          {confirming ? (
+            <View className="px-4 py-3 flex-row items-center gap-3">
+              <Text className="flex-1 text-sm text-nuru-secondary-light dark:text-nuru-secondary">
+                Sign out?
+              </Text>
+              <Pressable
+                onPress={() => setConfirming(false)}
+                className="px-3 py-2 rounded-xl bg-nuru-elevated-light dark:bg-nuru-elevated"
+              >
+                <Text className="text-sm font-semibold text-nuru-text-light dark:text-nuru-text">Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSignOut}
+                disabled={signingOut}
+                className="px-3 py-2 rounded-xl bg-red-500"
+              >
+                {signingOut
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text className="text-sm font-bold text-white">Sign out</Text>}
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              onPress={() => setConfirming(true)}
+              className="px-4 py-4 active:bg-nuru-elevated-light dark:active:bg-nuru-elevated"
+            >
+              <Text className="text-nuru-error font-medium">Sign out</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* About card */}
