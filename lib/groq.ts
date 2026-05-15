@@ -36,6 +36,32 @@ export interface ChatMessage {
   text: string;
 }
 
+// ─── Rate-limit helpers ───────────────────────────────────────────────────────
+
+function isRateLimited(err: any): boolean {
+  // Groq SDK wraps HTTP errors; status lives in different places across versions
+  return (
+    err?.status === 429 ||
+    err?.statusCode === 429 ||
+    err?.response?.status === 429 ||
+    String(err?.message ?? "").includes("429") ||
+    String(err?.message ?? "").toLowerCase().includes("rate limit")
+  );
+}
+
+export class GroqRateLimitError extends Error {
+  constructor(context: "llm" | "whisper") {
+    super(
+      context === "llm"
+        ? "Our AI is busy right now — tap to try again in a moment."
+        : "Couldn't process audio — tap to try again."
+    );
+    this.name = "GroqRateLimitError";
+  }
+}
+
+// ─── LLM ──────────────────────────────────────────────────────────────────────
+
 export async function sendMessage(
   systemPrompt: string,
   contextText: string | null | undefined,
@@ -58,20 +84,24 @@ export async function sendMessage(
     .filter(Boolean)
     .join("\n\n");
 
-  const response = await groq.chat.completions.create({
-    model: "llama-3.1-8b-instant",
-    messages: [
-      { role: "system", content: fullSystem },
-      ...history.map((m) => ({ role: m.role, content: m.text })),
-    ],
-    max_tokens: 512,
-    temperature: 0.75,
-  });
-
-  return (
-    response.choices[0]?.message?.content ??
-    "I'm sorry, I couldn't generate a response. Please try again."
-  );
+  try {
+    const response = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: fullSystem },
+        ...history.map((m) => ({ role: m.role, content: m.text })),
+      ],
+      max_tokens: 512,
+      temperature: 0.75,
+    });
+    return (
+      response.choices[0]?.message?.content ??
+      "I'm sorry, I couldn't generate a response. Please try again."
+    );
+  } catch (err: any) {
+    if (isRateLimited(err)) throw new GroqRateLimitError("llm");
+    throw err;
+  }
 }
 
 export async function generateGreeting(
@@ -113,142 +143,40 @@ export async function generateGreeting(
 export async function transcribeAudio(audioBlob: Blob, languageLabel?: string): Promise<string> {
   const langCode = languageLabel ? getBCP47Code(languageLabel) : "en";
   const file = new File([audioBlob], "audio.webm", { type: "audio/webm" });
-  const transcript = await groq.audio.transcriptions.create({
-    file,
-    model: "whisper-large-v3-turbo",
-    response_format: "text",
-    ...(langCode !== "en" ? { language: langCode } : {}),
-  }) as unknown as string;
-  return transcript.trim();
+  try {
+    const transcript = await groq.audio.transcriptions.create({
+      file,
+      model: "whisper-large-v3-turbo",
+      response_format: "text",
+      ...(langCode !== "en" ? { language: langCode } : {}),
+    }) as unknown as string;
+    return transcript.trim();
+  } catch (err: any) {
+    if (isRateLimited(err)) throw new GroqRateLimitError("whisper");
+    throw err;
+  }
 }
 
-// ─── TTS ──────────────────────────────────────────────────────────────────────
+// ─── Question Summary ──────────────────────────────────────────────────────────
 
-const PLAYAI_VOICE_MAP: Record<string, string> = {
-  English: "Fritz-PlayAI",
-};
-
-export function groqVoiceForLanguage(language: string): string | null {
-  return PLAYAI_VOICE_MAP[language] ?? null;
-}
-
-function cleanForTTS(text: string): string {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, "$1") // **bold** → bold
-    .replace(/\*(.*?)\*/g, "$1") // *italic* → italic
-    .replace(/`([^`]*)`/g, "$1") // `code` → code
-    .replace(/#{1,6}\s*/g, "") // # headers
-    .replace(/[_~]/g, "") // underline / strikethrough chars
-    .replace(/\n{2,}/g, ". ") // paragraph breaks → natural pause
-    .replace(/\n/g, " ") // single newlines → space
-    .replace(/\s{2,}/g, " ") // collapse extra spaces
-    .trim();
-}
-
-function splitIntoSentences(text: string): string[] {
-  // Split after sentence-ending punctuation followed by whitespace + capital/quote
-  const parts = text.split(/(?<=[.!?])\s+(?=[A-Z"'])/);
-  const result = parts.map((s) => s.trim()).filter((s) => s.length > 2);
-  return result.length > 0 ? result : [text];
-}
-
-async function fetchSentenceAudio(
-  text: string,
-  voice: string
-): Promise<HTMLAudioElement> {
-  const response = await groq.audio.speech.create({
-    model: "playai-tts",
-    voice: voice as any,
-    input: text,
-    response_format: "mp3",
-    speed: 1.05,
+export async function summarizeQuestions(
+  questions: string[],
+  subject: string,
+  agentName: string
+): Promise<string> {
+  const list = questions.map((q, i) => `${i + 1}. ${q}`).join("\n");
+  const response = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [
+      {
+        role: "system",
+        content: `You are an educational analyst helping a teacher understand their students. Analyze the student questions below from a "${agentName}" ${subject} agent and write a 2–3 sentence summary covering: what topics students are most curious about, what they seem to be struggling with, and any notable patterns. Be specific and concise. Plain prose only — no bullet points or lists.`,
+      },
+      { role: "user", content: list },
+    ],
+    max_tokens: 200,
+    temperature: 0.5,
   });
-  const arrayBuffer = await response.arrayBuffer();
-  const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
-  const url = URL.createObjectURL(blob);
-  const audio = new Audio(url);
-  return audio;
+  return response.choices[0]?.message?.content ?? "Could not generate summary.";
 }
 
-export async function speakWithGroqTTS(
-  text: string,
-  voice: string
-): Promise<{ promise: Promise<void>; cancel: () => void }> {
-  const cleaned = cleanForTTS(text);
-  const sentences = splitIntoSentences(cleaned);
-
-  let cancelled = false;
-  let currentAudio: HTMLAudioElement | null = null;
-  const objectURLs: string[] = [];
-
-  const promise = (async () => {
-    // Prefetch first sentence immediately
-    let nextAudioPromise = fetchSentenceAudio(sentences[0], voice);
-
-    for (let i = 0; i < sentences.length; i++) {
-      if (cancelled) break;
-
-      const audio = await nextAudioPromise;
-      if (cancelled) {
-        audio.src = "";
-        break;
-      }
-
-      // Start prefetching next sentence in parallel
-      if (i + 1 < sentences.length) {
-        nextAudioPromise = fetchSentenceAudio(sentences[i + 1], voice);
-      }
-
-      currentAudio = audio;
-      objectURLs.push(audio.src);
-
-      await new Promise<void>((resolve, reject) => {
-        audio.onended = () => resolve();
-        audio.onerror = () => reject(new Error("Audio error"));
-        audio.play().catch(reject);
-      });
-    }
-
-    // Cleanup
-    objectURLs.forEach((u) => URL.revokeObjectURL(u));
-  })();
-
-  const cancel = () => {
-    cancelled = true;
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-    }
-    objectURLs.forEach((u) => URL.revokeObjectURL(u));
-  };
-
-  return { promise, cancel };
-}
-
-export function speakWithWebSpeech(text: string, language: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) {
-      console.warn("speakWithWebSpeech: Web Speech API not available");
-      resolve();
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = getBCP47Code(language);
-    utterance.rate = 0.92;
-    utterance.pitch = 1.05;
-
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(
-      (v) =>
-        v.lang.startsWith(utterance.lang.split("-")[0]) &&
-        (v.name.includes("Google") || v.name.includes("Neural") || v.name.includes("Natural"))
-    );
-    if (preferred) utterance.voice = preferred;
-
-    utterance.onend = () => resolve();
-    utterance.onerror = (e) => reject(new Error(`Web Speech error: ${e.error}`));
-
-    window.speechSynthesis.speak(utterance);
-  });
-}

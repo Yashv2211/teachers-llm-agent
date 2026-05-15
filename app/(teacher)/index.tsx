@@ -3,9 +3,8 @@ import { AppSchema } from "@/instant.schema";
 import { InstaQLEntity } from "@instantdb/react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   Text,
@@ -32,9 +31,24 @@ const SUBJECT_ACCENT: Record<string, string> = {
   Geography: "#22c55e",
 };
 
+function useOffline() {
+  const [offline, setOffline] = useState(
+    typeof navigator !== "undefined" ? !navigator.onLine : false
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+  return offline;
+}
+
 export default function DashboardScreen() {
   const { user } = db.useAuth();
-  const { isLoading, data } = db.useQuery(
+  const { isLoading, error, data } = db.useQuery(
     user
       ? {
           agents: {
@@ -49,6 +63,7 @@ export default function DashboardScreen() {
 
   const agents: Agent[] = data?.agents ?? [];
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const offline = useOffline();
 
   function handleDeleteConfirm(agent: Agent) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -58,6 +73,14 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["top"]}>
+      {/* Offline banner */}
+      {offline && (
+        <View style={{ backgroundColor: "#f59e0b", paddingVertical: 8, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
+          <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>You're offline — changes won't save</Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 }}>
         <Text
@@ -73,26 +96,35 @@ export default function DashboardScreen() {
           Teacher Dashboard
         </Text>
         <Text
-          style={{
-            fontSize: 30,
-            fontWeight: "800",
-            color: "#18181b",
-            letterSpacing: -0.8,
-          }}
-          className="dark:text-white"
+          style={{ fontSize: 30, fontWeight: "800", letterSpacing: -0.8 }}
+          className="text-zinc-900 dark:text-white"
         >
           My Agents
         </Text>
-        <Text style={{ fontSize: 13, color: "#a1a1aa", marginTop: 4 }}>
-          {agents.length === 0
+        <Text style={{ fontSize: 13, marginTop: 4 }} className="text-zinc-400">
+          {isLoading
+            ? "Loading…"
+            : agents.length === 0
             ? "No agents created yet"
             : `${agents.length} voice agent${agents.length !== 1 ? "s" : ""}`}
         </Text>
       </View>
 
-      {isLoading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color="#4f46e5" />
+      {error ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+          <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700", textAlign: "center", marginBottom: 8 }} className="text-zinc-900 dark:text-white">
+            Couldn't load agents
+          </Text>
+          <Text style={{ fontSize: 14, textAlign: "center" }} className="text-zinc-500 dark:text-zinc-400">
+            {error.message ?? "Something went wrong. Check your connection and try again."}
+          </Text>
+        </View>
+      ) : isLoading ? (
+        <View style={{ padding: 16, gap: 12 }}>
+          {[0, 1, 2].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
         </View>
       ) : agents.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
@@ -110,19 +142,12 @@ export default function DashboardScreen() {
             <Text style={{ fontSize: 42 }}>🤖</Text>
           </View>
           <Text
-            style={{
-              fontSize: 20,
-              fontWeight: "700",
-              color: "#18181b",
-              textAlign: "center",
-              marginBottom: 8,
-              letterSpacing: -0.3,
-            }}
-            className="dark:text-white"
+            style={{ fontSize: 20, fontWeight: "700", textAlign: "center", marginBottom: 8, letterSpacing: -0.3 }}
+            className="text-zinc-900 dark:text-white"
           >
             No agents yet
           </Text>
-          <Text style={{ fontSize: 14, color: "#71717a", textAlign: "center", lineHeight: 22, marginBottom: 28 }}>
+          <Text style={{ fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 28 }} className="text-zinc-500 dark:text-zinc-400">
             Create your first voice agent and share it with your students.
           </Text>
           <Pressable
@@ -192,6 +217,30 @@ export default function DashboardScreen() {
   );
 }
 
+function SkeletonCard() {
+  return (
+    <View
+      style={{ borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, flexDirection: "row" }}
+      className="bg-white dark:bg-zinc-900"
+    >
+      <View style={{ width: 4 }} className="bg-zinc-200 dark:bg-zinc-700" />
+      <View style={{ flex: 1, padding: 16, gap: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ width: 46, height: 46, borderRadius: 14 }} className="bg-zinc-100 dark:bg-zinc-800" />
+          <View style={{ flex: 1, gap: 6 }}>
+            <View style={{ height: 14, borderRadius: 7, width: "60%" }} className="bg-zinc-100 dark:bg-zinc-800" />
+            <View style={{ height: 11, borderRadius: 6, width: "35%" }} className="bg-zinc-100 dark:bg-zinc-800" />
+          </View>
+        </View>
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          <View style={{ height: 22, borderRadius: 8, width: 72 }} className="bg-zinc-100 dark:bg-zinc-800" />
+          <View style={{ height: 22, borderRadius: 8, width: 58 }} className="bg-zinc-100 dark:bg-zinc-800" />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function AgentCard({
   agent,
   isConfirming,
@@ -221,7 +270,6 @@ function AgentCard({
     <Pressable
       onPress={isConfirming ? undefined : onPress}
       style={({ pressed }) => ({
-        backgroundColor: "#ffffff",
         borderRadius: 20,
         overflow: "hidden",
         transform: [{ scale: pressed && !isConfirming ? 0.98 : 1 }],
@@ -231,7 +279,7 @@ function AgentCard({
         shadowOffset: { width: 0, height: 4 },
         elevation: 3,
       })}
-      className="dark:bg-zinc-900"
+      className="bg-white dark:bg-zinc-900"
     >
       <View style={{ flexDirection: "row" }}>
         {/* Left accent strip */}
@@ -260,11 +308,10 @@ function AgentCard({
                 style={{
                   fontSize: 16,
                   fontWeight: "700",
-                  color: "#18181b",
                   letterSpacing: -0.3,
                   lineHeight: 22,
                 }}
-                className="dark:text-white"
+                className="text-zinc-900 dark:text-white"
               >
                 {agent.name}
               </Text>
@@ -276,19 +323,14 @@ function AgentCard({
             {/* Actions */}
             {isConfirming ? (
               <View style={{ alignItems: "flex-end", gap: 6 }}>
-                <Text style={{ fontSize: 11, color: "#71717a", fontWeight: "600" }}>Delete agent?</Text>
+                <Text style={{ fontSize: 11, fontWeight: "600" }} className="text-zinc-500 dark:text-zinc-400">Delete agent?</Text>
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   <Pressable
                     onPress={onDeleteCancel}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 10,
-                      backgroundColor: "#f4f4f5",
-                    }}
-                    className="dark:bg-zinc-800"
+                    style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+                    className="bg-zinc-100 dark:bg-zinc-800"
                   >
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: "#52525b" }} className="dark:text-zinc-300">
+                    <Text style={{ fontSize: 12, fontWeight: "600" }} className="text-zinc-600 dark:text-zinc-300">
                       Cancel
                     </Text>
                   </Pressable>
@@ -310,15 +352,8 @@ function AgentCard({
                 <Pressable
                   onPress={onDeleteStart}
                   hitSlop={8}
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 10,
-                    backgroundColor: "#fef2f2",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  className="dark:bg-red-950"
+                  style={{ width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" }}
+                  className="bg-red-50 dark:bg-red-950"
                 >
                   <Ionicons name="trash-outline" size={15} color="#ef4444" />
                 </Pressable>
@@ -329,42 +364,19 @@ function AgentCard({
 
           {/* Badges */}
           <View style={{ flexDirection: "row", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
-            <View
-              style={{
-                backgroundColor: "#f4f4f5",
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 8,
-              }}
-              className="dark:bg-zinc-800"
-            >
-              <Text style={{ fontSize: 11, fontWeight: "600", color: "#71717a" }} className="dark:text-zinc-400">
+            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }} className="bg-zinc-100 dark:bg-zinc-800">
+              <Text style={{ fontSize: 11, fontWeight: "600" }} className="text-zinc-500 dark:text-zinc-400">
                 {gradeLabel(agent.gradeLevel ?? "")}
               </Text>
             </View>
-            <View
-              style={{
-                backgroundColor: "#f4f4f5",
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 8,
-              }}
-              className="dark:bg-zinc-800"
-            >
-              <Text style={{ fontSize: 11, fontWeight: "600", color: "#71717a" }} className="dark:text-zinc-400">
+            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }} className="bg-zinc-100 dark:bg-zinc-800">
+              <Text style={{ fontSize: 11, fontWeight: "600" }} className="text-zinc-500 dark:text-zinc-400">
                 {agent.language}
               </Text>
             </View>
             {agent.contextText ? (
-              <View
-                style={{
-                  backgroundColor: "#fef9ec",
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 8,
-                }}
-              >
-                <Text style={{ fontSize: 11, fontWeight: "600", color: "#92400e" }}>📎 Context</Text>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }} className="bg-amber-50 dark:bg-amber-900/30">
+                <Text style={{ fontSize: 11, fontWeight: "600" }} className="text-amber-800 dark:text-amber-300">📎 Context</Text>
               </View>
             ) : null}
           </View>

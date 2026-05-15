@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { AppSchema } from "@/instant.schema";
+import { summarizeQuestions } from "@/lib/groq";
 import {
   combineAndTruncate,
   ContextSource,
@@ -44,7 +45,7 @@ export default function AgentDetailScreen() {
   const { id: agentId } = useLocalSearchParams<{ id: string }>();
   const { user } = db.useAuth();
 
-  const { isLoading, data } = db.useQuery(
+  const { isLoading, error, data } = db.useQuery(
     agentId ? { agents: { $: { where: { id: agentId } } } } : null
   );
 
@@ -54,6 +55,23 @@ export default function AgentDetailScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950">
         <ActivityIndicator size="large" color="#4f46e5" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-8">
+        <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
+        <Text style={{ fontSize: 16, fontWeight: "700", color: "#18181b", textAlign: "center", marginBottom: 8 }}>
+          Couldn't load agent
+        </Text>
+        <Text style={{ fontSize: 14, color: "#71717a", textAlign: "center", marginBottom: 20 }}>
+          {error.message ?? "Something went wrong. Check your connection."}
+        </Text>
+        <Pressable onPress={() => router.back()}>
+          <Text style={{ color: "#4f46e5", fontWeight: "600" }}>Go back</Text>
+        </Pressable>
       </View>
     );
   }
@@ -93,9 +111,39 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; subject?: string; systemPrompt?: string }>({});
   const [extractError, setExtractError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
+
+  const { isLoading: logLoading, data: logData } = db.useQuery({
+    questionLog: {
+      $: { where: { agentId: agent.id }, order: { createdAt: "desc" }, limit: 50 },
+    },
+  });
+  const questions = logData?.questionLog ?? [];
+
+  async function handleSummarize() {
+    if (questions.length === 0) return;
+    setSummarizing(true);
+    setSummary(null);
+    try {
+      const result = await summarizeQuestions(
+        questions.map((q) => q.question),
+        agent.subject,
+        agent.name
+      );
+      setSummary(result);
+    } catch {
+      setSummary("Could not generate summary. Please try again.");
+    } finally {
+      setSummarizing(false);
+    }
+  }
 
   const shareLink =
     typeof window !== "undefined"
@@ -115,6 +163,18 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
       { type: "library", label: entry.title, text: `${entry.content}\n\nSource: ${entry.source}` },
     ]);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await db.transact(db.tx.agents[agent.id].delete());
+      router.back();
+    } catch (err: any) {
+      setFormError(err?.message ?? "Delete failed. Please try again.");
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   }
 
   async function copyLink() {
@@ -139,6 +199,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
       try {
         const file = (asset as any).file as File | undefined;
         if (!file) { setExtractError("File extraction requires the web browser."); return; }
+        if (file.size > 10 * 1024 * 1024) { setExtractError("File too large — max 10MB. Try a smaller document."); return; }
         const ext = asset.name.split(".").pop()?.toLowerCase();
         let text = "";
         if (ext === "pdf") text = await extractTextFromPDF(file);
@@ -186,10 +247,12 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
   async function handleSave() {
     setFormError("");
-    if (!name.trim() || !subject.trim() || !systemPrompt.trim()) {
-      setFormError("Name, subject, and instructions are required.");
-      return;
-    }
+    const errs: typeof fieldErrors = {};
+    if (!name.trim()) errs.name = "Agent name is required.";
+    if (!subject.trim()) errs.subject = "Subject is required.";
+    if (!systemPrompt.trim()) errs.systemPrompt = "Agent instructions are required.";
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     setSaving(true);
     try {
       const newSources = sources.filter((s) => s.text.length > 0);
@@ -224,9 +287,28 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
             <Pressable onPress={() => router.back()} style={{ marginRight: 10, padding: 4 }}>
               <Ionicons name="chevron-back" size={22} color="#4338ca" />
             </Pressable>
-            <Text style={{ flex: 1, fontSize: 20, fontWeight: "800", color: "#18181b", letterSpacing: -0.5 }} className="dark:text-white" numberOfLines={1}>
+            <Text style={{ flex: 1, fontSize: 20, fontWeight: "800", letterSpacing: -0.5 }} className="text-zinc-900 dark:text-white" numberOfLines={1}>
               {agent.name}
             </Text>
+            {confirmDelete ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Pressable onPress={() => setConfirmDelete(false)}
+                  style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: "#f4f4f5" }}>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: "#52525b" }}>Cancel</Text>
+                </Pressable>
+                <Pressable onPress={handleDelete} disabled={deleting}
+                  style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: "#ef4444" }}>
+                  {deleting
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={{ fontSize: 13, fontWeight: "700", color: "#fff" }}>Delete</Text>}
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable onPress={() => setConfirmDelete(true)}
+                style={{ padding: 8, borderRadius: 10, backgroundColor: "#fef2f2" }}>
+                <Ionicons name="trash-outline" size={18} color="#ef4444" />
+              </Pressable>
+            )}
           </View>
 
           {/* Share card — dark premium */}
@@ -255,14 +337,16 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           {/* Edit fields */}
           <SectionLabel>Agent name</SectionLabel>
-          <TextInput value={name} onChangeText={setName}
-            style={{ marginBottom: 20 }}
+          <TextInput value={name} onChangeText={(v) => { setName(v); if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined })); }}
+            style={{ marginBottom: fieldErrors.name ? 4 : 20, borderColor: fieldErrors.name ? "#ef4444" : undefined }}
             className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+          {fieldErrors.name ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.name}</Text> : null}
 
           <SectionLabel>Subject</SectionLabel>
-          <TextInput value={subject} onChangeText={(v) => { setSubject(v); setLibrarySubject(v); }}
-            style={{ marginBottom: 20 }}
+          <TextInput value={subject} onChangeText={(v) => { setSubject(v); setLibrarySubject(v); if (fieldErrors.subject) setFieldErrors((p) => ({ ...p, subject: undefined })); }}
+            style={{ marginBottom: fieldErrors.subject ? 4 : 20, borderColor: fieldErrors.subject ? "#ef4444" : undefined }}
             className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+          {fieldErrors.subject ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.subject}</Text> : null}
 
           {/* Grade 1-12 grid */}
           <SectionLabel>Grade level</SectionLabel>
@@ -316,9 +400,10 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
           </ScrollView>
 
           <SectionLabel>Agent instructions</SectionLabel>
-          <TextInput value={systemPrompt} onChangeText={setSystemPrompt} multiline numberOfLines={5} textAlignVertical="top"
-            style={{ marginBottom: 20, minHeight: 120 }}
+          <TextInput value={systemPrompt} onChangeText={(v) => { setSystemPrompt(v); if (fieldErrors.systemPrompt) setFieldErrors((p) => ({ ...p, systemPrompt: undefined })); }} multiline numberOfLines={5} textAlignVertical="top"
+            style={{ marginBottom: fieldErrors.systemPrompt ? 4 : 20, minHeight: 120, borderColor: fieldErrors.systemPrompt ? "#ef4444" : undefined }}
             className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+          {fieldErrors.systemPrompt ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.systemPrompt}</Text> : null}
 
           {/* Context */}
           <SectionLabel>Add more context</SectionLabel>
@@ -459,8 +544,8 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           {/* Form error */}
           {formError ? (
-            <View style={{ marginTop: 16, backgroundColor: "#fef2f2", borderRadius: 12, borderWidth: 1, borderColor: "#fecaca", paddingHorizontal: 16, paddingVertical: 12 }}>
-              <Text style={{ color: "#dc2626", fontSize: 14, fontWeight: "500" }}>{formError}</Text>
+            <View style={{ marginTop: 16, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }} className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+              <Text style={{ fontSize: 14, fontWeight: "500" }} className="text-red-600 dark:text-red-400">{formError}</Text>
             </View>
           ) : null}
 
@@ -486,20 +571,122 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               }
             </Pressable>
           </View>
+          {/* Question Log */}
+          <View style={{ marginTop: 36 }}>
+            <SectionLabel>Student Questions</SectionLabel>
+
+            {logLoading ? (
+              <View style={{ gap: 10 }}>
+                {[0, 1, 2].map((i) => (
+                  <View key={i} style={{ height: 48, borderRadius: 14, backgroundColor: "#f4f4f5" }} />
+                ))}
+              </View>
+            ) : questions.length === 0 ? (
+              <View style={{ alignItems: "center", paddingVertical: 28, backgroundColor: "#fafafa", borderRadius: 18, borderWidth: 1, borderColor: "#f0f0f0" }}>
+                <Text style={{ fontSize: 28, marginBottom: 8 }}>📭</Text>
+                <Text style={{ fontSize: 14, color: "#a1a1aa", textAlign: "center" }}>
+                  No questions yet — share the QR code with your students.
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Summarize button */}
+                <Pressable
+                  onPress={handleSummarize}
+                  disabled={summarizing}
+                  style={({ pressed }) => ({
+                    backgroundColor: summarizing ? "#e0e7ff" : pressed ? "#3730a3" : "#4338ca",
+                    borderRadius: 14,
+                    paddingVertical: 13,
+                    alignItems: "center",
+                    marginBottom: 16,
+                    opacity: summarizing ? 0.8 : 1,
+                  })}
+                >
+                  {summarizing ? (
+                    <ActivityIndicator color="white" size="small" />
+                  ) : (
+                    <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
+                      ✨ Summarize with AI
+                    </Text>
+                  )}
+                </Pressable>
+
+                {/* Summary result */}
+                {summary ? (
+                  <View style={{ backgroundColor: "#f0f9ff", borderRadius: 14, borderWidth: 1, borderColor: "#bae6fd", padding: 16, marginBottom: 16 }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: "#0369a1", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+                      AI Summary
+                    </Text>
+                    <Text style={{ fontSize: 14, color: "#0c4a6e", lineHeight: 22 }}>{summary}</Text>
+                  </View>
+                ) : null}
+
+                {/* Question list */}
+                <View style={{ gap: 8 }}>
+                  {questions.map((q) => (
+                    <View
+                      key={q.id}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        borderRadius: 14,
+                        borderWidth: 1,
+                        borderColor: "#f0f0f4",
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        gap: 10,
+                        shadowColor: "#000",
+                        shadowOpacity: 0.03,
+                        shadowRadius: 4,
+                        shadowOffset: { width: 0, height: 1 },
+                      }}
+                    >
+                      <Text style={{ fontSize: 16, marginTop: 1 }}>💬</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, color: "#18181b", lineHeight: 20 }} numberOfLines={3}>
+                          {q.question}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: "#a1a1aa", marginTop: 4 }}>
+                          {formatRelativeTime(q.createdAt)}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                <Text style={{ fontSize: 11, color: "#d4d4d8", textAlign: "center", marginTop: 12 }}>
+                  Showing last {questions.length} question{questions.length !== 1 ? "s" : ""}
+                </Text>
+              </>
+            )}
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
+function formatRelativeTime(ts: number): string {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 function SectionLabel({ children }: { children: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-      <View style={{ flex: 1, height: 1, backgroundColor: "#e4e4e7" }} />
-      <Text style={{ fontSize: 10, fontWeight: "700", color: "#a1a1aa", letterSpacing: 1.5, textTransform: "uppercase" }}>
+      <View style={{ flex: 1, height: 1 }} className="bg-zinc-200 dark:bg-zinc-700" />
+      <Text style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.5, textTransform: "uppercase" }} className="text-zinc-400 dark:text-zinc-500">
         {children}
       </Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: "#e4e4e7" }} />
+      <View style={{ flex: 1, height: 1 }} className="bg-zinc-200 dark:bg-zinc-700" />
     </View>
   );
 }
