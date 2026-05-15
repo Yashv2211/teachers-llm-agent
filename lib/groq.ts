@@ -1,10 +1,4 @@
-import Groq from "groq-sdk";
 import { getBCP47Code } from "./languages";
-
-const groq = new Groq({
-  apiKey: process.env.EXPO_PUBLIC_GROQ_API_KEY,
-  dangerouslyAllowBrowser: true,
-});
 
 // 12-level phrasing map — pairs of grades share the same cognitive band
 const GRADE_PHRASING: Record<string, string> = {
@@ -29,7 +23,7 @@ function buildTopicGuard(subject: string): string {
 const PERSONALITY_BOOST =
   "Speak naturally and warmly, like a knowledgeable older sibling — never stiff or robotic. Use contractions (you're, let's, that's). Show genuine excitement when a student gets something right. Keep responses short and conversational — this is a voice chat, not a textbook. Never use bullet points or numbered lists. If a student seems confused, rephrase from a completely fresh angle instead of repeating yourself. End with a quick check-in or follow-up question to keep the conversation going. CRITICAL: Your response will be read aloud by a text-to-speech engine. Write ONLY in natural spoken sentences. Never use markdown symbols, asterisks, dashes, colons introducing lists, or parentheses. Write exactly as a warm human teacher would speak out loud.";
 
-// ─── LLM ──────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -39,11 +33,9 @@ export interface ChatMessage {
 // ─── Rate-limit helpers ───────────────────────────────────────────────────────
 
 function isRateLimited(err: any): boolean {
-  // Groq SDK wraps HTTP errors; status lives in different places across versions
   return (
     err?.status === 429 ||
     err?.statusCode === 429 ||
-    err?.response?.status === 429 ||
     String(err?.message ?? "").includes("429") ||
     String(err?.message ?? "").toLowerCase().includes("rate limit")
   );
@@ -58,6 +50,31 @@ export class GroqRateLimitError extends Error {
     );
     this.name = "GroqRateLimitError";
   }
+}
+
+// ─── Internal proxy helper ────────────────────────────────────────────────────
+
+type CompletionResponse = {
+  choices: { message: { content: string | null } }[];
+};
+
+async function chatCompletions(payload: {
+  messages: { role: string; content: string }[];
+  model: string;
+  max_tokens: number;
+  temperature: number;
+}): Promise<CompletionResponse> {
+  const res = await fetch("/api/groq", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 429) throw new GroqRateLimitError("llm");
+    throw new Error((err as any).error ?? `Groq API error ${res.status}`);
+  }
+  return res.json();
 }
 
 // ─── LLM ──────────────────────────────────────────────────────────────────────
@@ -85,7 +102,7 @@ export async function sendMessage(
     .join("\n\n");
 
   try {
-    const response = await groq.chat.completions.create({
+    const response = await chatCompletions({
       model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: fullSystem },
@@ -125,7 +142,7 @@ export async function generateGreeting(
     .filter(Boolean)
     .join("\n\n");
 
-  const response = await groq.chat.completions.create({
+  const response = await chatCompletions({
     model: "llama-3.1-8b-instant",
     messages: [{ role: "system", content: fullSystem }],
     max_tokens: 80,
@@ -142,15 +159,32 @@ export async function generateGreeting(
 
 export async function transcribeAudio(audioBlob: Blob, languageLabel?: string): Promise<string> {
   const langCode = languageLabel ? getBCP47Code(languageLabel) : "en";
-  const file = new File([audioBlob], "audio.webm", { type: "audio/webm" });
+
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1] ?? "");
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(audioBlob);
+  });
+
   try {
-    const transcript = await groq.audio.transcriptions.create({
-      file,
-      model: "whisper-large-v3-turbo",
-      response_format: "text",
-      ...(langCode !== "en" ? { language: langCode } : {}),
-    }) as unknown as string;
-    return transcript.trim();
+    const res = await fetch("/api/groq-audio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        audio: base64,
+        ...(langCode !== "en" ? { language: langCode } : {}),
+      }),
+    });
+    if (!res.ok) {
+      if (res.status === 429) throw new GroqRateLimitError("whisper");
+      throw new Error(`Whisper error ${res.status}`);
+    }
+    const { text } = await res.json() as { text: string };
+    return text ?? "";
   } catch (err: any) {
     if (isRateLimited(err)) throw new GroqRateLimitError("whisper");
     throw err;
@@ -165,7 +199,7 @@ export async function summarizeQuestions(
   agentName: string
 ): Promise<string> {
   const list = questions.map((q, i) => `${i + 1}. ${q}`).join("\n");
-  const response = await groq.chat.completions.create({
+  const response = await chatCompletions({
     model: "llama-3.1-8b-instant",
     messages: [
       {
@@ -179,4 +213,3 @@ export async function summarizeQuestions(
   });
   return response.choices[0]?.message?.content ?? "Could not generate summary.";
 }
-
