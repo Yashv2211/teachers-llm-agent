@@ -48,6 +48,7 @@ function useOffline() {
 
 export default function DashboardScreen() {
   const { user } = db.useAuth();
+  const [retryCount, setRetryCount] = useState(0);
   const { isLoading, error, data } = db.useQuery(
     user
       ? {
@@ -114,11 +115,17 @@ export default function DashboardScreen() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
           <Text style={{ fontSize: 16, fontWeight: "700", textAlign: "center", marginBottom: 8 }} className="text-zinc-900 dark:text-white">
-            Couldn't load agents
+            Couldn't load your tutors
           </Text>
-          <Text style={{ fontSize: 14, textAlign: "center" }} className="text-zinc-500 dark:text-zinc-400">
-            {error.message ?? "Something went wrong. Check your connection and try again."}
+          <Text style={{ fontSize: 14, textAlign: "center", marginBottom: 24 }} className="text-zinc-500 dark:text-zinc-400">
+            Check your connection and try again.
           </Text>
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setRetryCount((c) => c + 1); }}
+            style={{ backgroundColor: "#4338ca", borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>Try again</Text>
+          </Pressable>
         </View>
       ) : isLoading ? (
         <View style={{ padding: 16, gap: 12 }}>
