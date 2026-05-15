@@ -1,8 +1,9 @@
 import { getBCP47Code } from "./languages";
 
-const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY ?? "";
-const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_AUDIO_URL = "https://api.groq.com/openai/v1/audio/transcriptions";
+// All Groq calls go through /api/groq and /api/groq-audio.
+// In dev (expo start): Metro middleware in metro.config.js handles these routes.
+// In production (Vercel): serverless functions in api/ handle them.
+// Direct browser-to-Groq is impossible — Groq returns 403 on all CORS preflights.
 
 // 12-level phrasing map — pairs of grades share the same cognitive band
 const GRADE_PHRASING: Record<string, string> = {
@@ -56,9 +57,7 @@ export class GroqRateLimitError extends Error {
   }
 }
 
-// ─── Internal fetch helper ────────────────────────────────────────────────────
-// Direct fetch avoids groq-sdk's X-Stainless-* custom headers, which cause
-// CORS preflight failures in browser environments.
+// ─── Internal proxy helper ────────────────────────────────────────────────────
 
 async function groqChat(payload: {
   messages: { role: string; content: string }[];
@@ -66,22 +65,17 @@ async function groqChat(payload: {
   max_tokens: number;
   temperature: number;
 }): Promise<string> {
-  const res = await fetch(GROQ_CHAT_URL, {
+  const res = await fetch("/api/groq", {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${GROQ_API_KEY}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-
   if (!res.ok) {
     if (res.status === 429) throw new GroqRateLimitError("llm");
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any)?.error?.message ?? `Groq error ${res.status}`);
+    throw new Error((err as any)?.error ?? `Groq error ${res.status}`);
   }
-
-  const data = await res.json() as { choices: { message: { content: string } }[] };
+  const data = (await res.json()) as { choices: { message: { content: string } }[] };
   return data.choices[0]?.message?.content ?? "";
 }
 
@@ -110,15 +104,17 @@ export async function sendMessage(
     .join("\n\n");
 
   try {
-    return await groqChat({
-      model: "llama-3.1-8b-instant",
-      messages: [
-        { role: "system", content: fullSystem },
-        ...history.map((m) => ({ role: m.role, content: m.text })),
-      ],
-      max_tokens: 512,
-      temperature: 0.75,
-    }) || "I'm sorry, I couldn't generate a response. Please try again.";
+    return (
+      (await groqChat({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          { role: "system", content: fullSystem },
+          ...history.map((m) => ({ role: m.role, content: m.text })),
+        ],
+        max_tokens: 512,
+        temperature: 0.75,
+      })) || "I'm sorry, I couldn't generate a response. Please try again."
+    );
   } catch (err: any) {
     if (isRateLimited(err)) throw new GroqRateLimitError("llm");
     throw err;
@@ -146,38 +142,43 @@ export async function generateGreeting(
     .filter(Boolean)
     .join("\n\n");
 
-  return await groqChat({
-    model: "llama-3.1-8b-instant",
-    messages: [{ role: "system", content: fullSystem }],
-    max_tokens: 80,
-    temperature: 0.8,
-  }) || `Hi! I'm your ${subject} assistant. Let's get started!`;
+  return (
+    (await groqChat({
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "system", content: fullSystem }],
+      max_tokens: 80,
+      temperature: 0.8,
+    })) || `Hi! I'm your ${subject} assistant. Let's get started!`
+  );
 }
 
 // ─── STT ──────────────────────────────────────────────────────────────────────
 
 export async function transcribeAudio(audioBlob: Blob, languageLabel?: string): Promise<string> {
   const langCode = languageLabel ? getBCP47Code(languageLabel) : "en";
-  const file = new File([audioBlob], "audio.webm", { type: "audio/webm" });
 
-  const form = new FormData();
-  form.append("file", file);
-  form.append("model", "whisper-large-v3-turbo");
-  form.append("response_format", "text");
-  if (langCode !== "en") form.append("language", langCode);
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve((reader.result as string).split(",")[1] ?? "");
+    reader.onerror = reject;
+    reader.readAsDataURL(audioBlob);
+  });
 
   try {
-    const res = await fetch(GROQ_AUDIO_URL, {
+    const res = await fetch("/api/groq-audio", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${GROQ_API_KEY}` },
-      body: form,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        audio: base64,
+        ...(langCode !== "en" ? { language: langCode } : {}),
+      }),
     });
     if (!res.ok) {
       if (res.status === 429) throw new GroqRateLimitError("whisper");
       throw new Error(`Whisper error ${res.status}`);
     }
-    // response_format: "text" returns plain text, not JSON
-    return (await res.text()).trim();
+    const { text } = (await res.json()) as { text: string };
+    return text ?? "";
   } catch (err: any) {
     if (isRateLimited(err)) throw new GroqRateLimitError("whisper");
     throw err;
@@ -192,16 +193,18 @@ export async function summarizeQuestions(
   agentName: string
 ): Promise<string> {
   const list = questions.map((q, i) => `${i + 1}. ${q}`).join("\n");
-  return await groqChat({
-    model: "llama-3.1-8b-instant",
-    messages: [
-      {
-        role: "system",
-        content: `You are an educational analyst helping a teacher understand their students. Analyze the student questions below from a "${agentName}" ${subject} agent and write a 2–3 sentence summary covering: what topics students are most curious about, what they seem to be struggling with, and any notable patterns. Be specific and concise. Plain prose only — no bullet points or lists.`,
-      },
-      { role: "user", content: list },
-    ],
-    max_tokens: 200,
-    temperature: 0.5,
-  }) || "Could not generate summary.";
+  return (
+    (await groqChat({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: `You are an educational analyst helping a teacher understand their students. Analyze the student questions below from a "${agentName}" ${subject} agent and write a 2–3 sentence summary covering: what topics students are most curious about, what they seem to be struggling with, and any notable patterns. Be specific and concise. Plain prose only — no bullet points or lists.`,
+        },
+        { role: "user", content: list },
+      ],
+      max_tokens: 200,
+      temperature: 0.5,
+    })) || "Could not generate summary."
+  );
 }
