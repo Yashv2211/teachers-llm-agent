@@ -1,26 +1,45 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+export const NuruColors = {
+  background: "#0B1929",
+  surface: "#152339",
+  elevated: "#1E3050",
+  primary: "#F59E0B",
+  primaryHover: "#FBBF24",
+  onPrimary: "#0B1929",
+  text: "#E8DDD0",
+  muted: "#C8BEAF",
+  secondary: "#7A8FA8",
+  border: "#243652",
+  success: "#34D399",
+  error: "#F87171",
+  warning: "#FBBF24",
+  info: "#60A5FA",
+  orbFrom: "#F59E0B",
+  orbTo: "#06B6D4",
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+  backgroundLight: "#F7F3EE",
+  surfaceLight: "#FFFFFF",
+  elevatedLight: "#F0EBE2",
+  textLight: "#0B1929",
+  mutedLight: "#1E3050",
+  secondaryLight: "#6B7FA8",
+  borderLight: "#E2D9CE",
+};
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: NuruColors.textLight,
+    background: NuruColors.backgroundLight,
+    tint: NuruColors.primary,
+    icon: NuruColors.secondaryLight,
+    tabIconDefault: NuruColors.secondaryLight,
+    tabIconSelected: NuruColors.primary,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: NuruColors.text,
+    background: NuruColors.background,
+    tint: NuruColors.primary,
+    icon: NuruColors.secondary,
+    tabIconDefault: NuruColors.secondary,
+    tabIconSelected: NuruColors.primary,
   },
 };

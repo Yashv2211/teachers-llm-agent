@@ -26,7 +26,7 @@ const SUBJECT_EMOJI: Record<string, string> = {
 const SUBJECT_ACCENT: Record<string, string> = {
   Mathematics: "#3b82f6",
   Science: "#10b981",
-  English: "#8b5cf6",
+  English: "#F59E0B",
   History: "#f59e0b",
   Geography: "#22c55e",
 };
@@ -73,7 +73,7 @@ export default function DashboardScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-nuru-bg-light dark:bg-nuru-bg" edges={["top"]}>
       {/* Offline banner */}
       {offline && (
         <View style={{ backgroundColor: "#f59e0b", paddingVertical: 8, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -88,7 +88,7 @@ export default function DashboardScreen() {
           style={{
             fontSize: 11,
             fontWeight: "700",
-            color: "#6366f1",
+            color: "#F59E0B",
             letterSpacing: 2,
             textTransform: "uppercase",
             marginBottom: 6,
@@ -98,11 +98,11 @@ export default function DashboardScreen() {
         </Text>
         <Text
           style={{ fontSize: 30, fontWeight: "800", letterSpacing: -0.8 }}
-          className="text-zinc-900 dark:text-white"
+          className="text-nuru-text-light dark:text-nuru-text"
         >
           My Agents
         </Text>
-        <Text style={{ fontSize: 13, marginTop: 4 }} className="text-zinc-400">
+        <Text style={{ fontSize: 13, marginTop: 4 }} className="text-nuru-secondary-light dark:text-nuru-secondary">
           {isLoading
             ? "Loading…"
             : agents.length === 0
@@ -114,7 +114,7 @@ export default function DashboardScreen() {
       {error ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
-          <Text style={{ fontSize: 16, fontWeight: "700", textAlign: "center", marginBottom: 8 }} className="text-zinc-900 dark:text-white">
+          <Text style={{ fontSize: 16, fontWeight: "700", textAlign: "center", marginBottom: 8 }} className="text-nuru-text-light dark:text-nuru-text">
             Couldn't load your tutors
           </Text>
           <Text style={{ fontSize: 14, textAlign: "center", marginBottom: 24 }} className="text-zinc-500 dark:text-zinc-400">
@@ -122,9 +122,9 @@ export default function DashboardScreen() {
           </Text>
           <Pressable
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setRetryCount((c) => c + 1); }}
-            style={{ backgroundColor: "#4338ca", borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 }}
+            style={{ backgroundColor: "#F59E0B", borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>Try again</Text>
+            <Text style={{ color: "#0B1929", fontWeight: "700", fontSize: 14 }}>Try again</Text>
           </Pressable>
         </View>
       ) : isLoading ? (
@@ -140,7 +140,7 @@ export default function DashboardScreen() {
               width: 88,
               height: 88,
               borderRadius: 26,
-              backgroundColor: "#ede9fe",
+              backgroundColor: "#1E3050",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 20,
@@ -150,7 +150,7 @@ export default function DashboardScreen() {
           </View>
           <Text
             style={{ fontSize: 20, fontWeight: "700", textAlign: "center", marginBottom: 8, letterSpacing: -0.3 }}
-            className="text-zinc-900 dark:text-white"
+            className="text-nuru-text-light dark:text-nuru-text"
           >
             No agents yet
           </Text>
@@ -160,18 +160,18 @@ export default function DashboardScreen() {
           <Pressable
             onPress={() => router.push("/(teacher)/create")}
             style={{
-              backgroundColor: "#4338ca",
+              backgroundColor: "#F59E0B",
               borderRadius: 16,
               paddingHorizontal: 28,
               paddingVertical: 14,
-              shadowColor: "#4338ca",
+              shadowColor: "#F59E0B",
               shadowOpacity: 0.4,
               shadowRadius: 12,
               shadowOffset: { width: 0, height: 6 },
               elevation: 8,
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Create Your First Agent</Text>
+            <Text style={{ color: "#0B1929", fontWeight: "700", fontSize: 15 }}>Create Your First Agent</Text>
           </Pressable>
         </View>
       ) : (
@@ -200,11 +200,11 @@ export default function DashboardScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 8,
-                backgroundColor: "#4338ca",
+                backgroundColor: "#F59E0B",
                 borderRadius: 18,
                 paddingHorizontal: 22,
                 paddingVertical: 15,
-                shadowColor: "#4338ca",
+                shadowColor: "#F59E0B",
                 shadowOpacity: 0.45,
                 shadowRadius: 16,
                 shadowOffset: { width: 0, height: 8 },
@@ -212,8 +212,8 @@ export default function DashboardScreen() {
                 transform: [{ scale: pressed ? 0.96 : 1 }],
               })}
             >
-              <Ionicons name="add" size={22} color="white" />
-              <Text style={{ color: "white", fontWeight: "700", fontSize: 15, letterSpacing: 0.2 }}>
+              <Ionicons name="add" size={22} color="#0B1929" />
+              <Text style={{ color: "#0B1929", fontWeight: "700", fontSize: 15, letterSpacing: 0.2 }}>
                 New Agent
               </Text>
             </Pressable>
@@ -228,20 +228,20 @@ function SkeletonCard() {
   return (
     <View
       style={{ borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, flexDirection: "row" }}
-      className="bg-white dark:bg-zinc-900"
+      className="bg-nuru-surface-light dark:bg-nuru-surface"
     >
-      <View style={{ width: 4 }} className="bg-zinc-200 dark:bg-zinc-700" />
+      <View style={{ width: 4 }} className="bg-nuru-border-light dark:bg-nuru-border" />
       <View style={{ flex: 1, padding: 16, gap: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View style={{ width: 46, height: 46, borderRadius: 14 }} className="bg-zinc-100 dark:bg-zinc-800" />
+          <View style={{ width: 46, height: 46, borderRadius: 14 }} className="bg-nuru-elevated-light dark:bg-nuru-elevated" />
           <View style={{ flex: 1, gap: 6 }}>
-            <View style={{ height: 14, borderRadius: 7, width: "60%" }} className="bg-zinc-100 dark:bg-zinc-800" />
-            <View style={{ height: 11, borderRadius: 6, width: "35%" }} className="bg-zinc-100 dark:bg-zinc-800" />
+            <View style={{ height: 14, borderRadius: 7, width: "60%" }} className="bg-nuru-elevated-light dark:bg-nuru-elevated" />
+            <View style={{ height: 11, borderRadius: 6, width: "35%" }} className="bg-nuru-elevated-light dark:bg-nuru-elevated" />
           </View>
         </View>
         <View style={{ flexDirection: "row", gap: 6 }}>
-          <View style={{ height: 22, borderRadius: 8, width: 72 }} className="bg-zinc-100 dark:bg-zinc-800" />
-          <View style={{ height: 22, borderRadius: 8, width: 58 }} className="bg-zinc-100 dark:bg-zinc-800" />
+          <View style={{ height: 22, borderRadius: 8, width: 72 }} className="bg-nuru-elevated-light dark:bg-nuru-elevated" />
+          <View style={{ height: 22, borderRadius: 8, width: 58 }} className="bg-nuru-elevated-light dark:bg-nuru-elevated" />
         </View>
       </View>
     </View>
@@ -263,7 +263,7 @@ function AgentCard({
   onDeleteCancel: () => void;
   onDeleteConfirm: () => void;
 }) {
-  const accent = SUBJECT_ACCENT[agent.subject] ?? "#4f46e5";
+  const accent = SUBJECT_ACCENT[agent.subject] ?? "#F59E0B";
   const emoji = SUBJECT_EMOJI[agent.subject] ?? "🤖";
 
   const gradeLabel = (g: string) => {
@@ -286,7 +286,7 @@ function AgentCard({
         shadowOffset: { width: 0, height: 4 },
         elevation: 3,
       })}
-      className="bg-white dark:bg-zinc-900"
+      className="bg-nuru-surface-light dark:bg-nuru-surface"
     >
       <View style={{ flexDirection: "row" }}>
         {/* Left accent strip */}
@@ -318,7 +318,7 @@ function AgentCard({
                   letterSpacing: -0.3,
                   lineHeight: 22,
                 }}
-                className="text-zinc-900 dark:text-white"
+                className="text-nuru-text-light dark:text-nuru-text"
               >
                 {agent.name}
               </Text>
@@ -335,7 +335,7 @@ function AgentCard({
                   <Pressable
                     onPress={onDeleteCancel}
                     style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
-                    className="bg-zinc-100 dark:bg-zinc-800"
+                    className="bg-nuru-elevated-light dark:bg-nuru-elevated"
                   >
                     <Text style={{ fontSize: 12, fontWeight: "600" }} className="text-zinc-600 dark:text-zinc-300">
                       Cancel
@@ -371,12 +371,12 @@ function AgentCard({
 
           {/* Badges */}
           <View style={{ flexDirection: "row", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
-            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }} className="bg-zinc-100 dark:bg-zinc-800">
+            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }} className="bg-nuru-elevated-light dark:bg-nuru-elevated">
               <Text style={{ fontSize: 11, fontWeight: "600" }} className="text-zinc-500 dark:text-zinc-400">
                 {gradeLabel(agent.gradeLevel ?? "")}
               </Text>
             </View>
-            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }} className="bg-zinc-100 dark:bg-zinc-800">
+            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }} className="bg-nuru-elevated-light dark:bg-nuru-elevated">
               <Text style={{ fontSize: 11, fontWeight: "600" }} className="text-zinc-500 dark:text-zinc-400">
                 {agent.language}
               </Text>

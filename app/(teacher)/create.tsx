@@ -237,16 +237,16 @@ export default function CreateAgentScreen() {
   const contextCharCount = sources.length > 0 ? combineAndTruncate(sources).length : 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-nuru-bg-light dark:bg-nuru-bg" edges={["top"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
 
           {/* Header */}
           <View style={{ marginBottom: 28 }}>
-            <Text style={{ fontSize: 11, fontWeight: "700", color: "#6366f1", letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: "#F59E0B", letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
               Create
             </Text>
-            <Text style={{ fontSize: 30, fontWeight: "800", letterSpacing: -0.8 }} className="text-zinc-900 dark:text-white">
+            <Text style={{ fontSize: 30, fontWeight: "800", letterSpacing: -0.8 }} className="text-nuru-text-light dark:text-nuru-text">
               New Agent
             </Text>
             <Text style={{ fontSize: 13, marginTop: 4 }} className="text-zinc-400">
@@ -269,10 +269,10 @@ export default function CreateAgentScreen() {
                     paddingVertical: 14,
                     minWidth: 76,
                     gap: 6,
-                    backgroundColor: sel ? "#4338ca" : "#f4f4f5",
+                    backgroundColor: sel ? "#F59E0B" : "#f4f4f5",
                     borderWidth: sel ? 0 : 1,
                     borderColor: "#e4e4e7",
-                    shadowColor: sel ? "#4338ca" : "transparent",
+                    shadowColor: sel ? "#F59E0B" : "transparent",
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
                     shadowOffset: { width: 0, height: 4 },
@@ -280,7 +280,7 @@ export default function CreateAgentScreen() {
                   className={sel ? "" : "dark:bg-zinc-800 dark:border-zinc-700"}
                 >
                   <Text style={{ fontSize: 24 }}>{t.icon}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: sel ? "#fff" : "#52525b" }} className={sel ? "" : "dark:text-zinc-300"}>{t.label}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: sel ? "#0B1929" : "#52525b" }} className={sel ? "" : "dark:text-zinc-300"}>{t.label}</Text>
                 </Pressable>
               );
             })}
@@ -290,14 +290,14 @@ export default function CreateAgentScreen() {
           <SectionLabel>Agent name</SectionLabel>
           <TextInput value={name} onChangeText={(v) => { setName(v); if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined })); }} placeholder="e.g. Chapter 4 Verbs Helper" placeholderTextColor="#c4c4c8"
             style={{ marginBottom: fieldErrors.name ? 4 : 20, borderColor: fieldErrors.name ? "#ef4444" : undefined }}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+            className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.name ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.name}</Text> : null}
 
           {/* Subject */}
           <SectionLabel>Subject</SectionLabel>
           <TextInput value={subject} onChangeText={(v) => { setSubject(v); setLibrarySubject(v); if (fieldErrors.subject) setFieldErrors((p) => ({ ...p, subject: undefined })); }} placeholder="e.g. English – Verbs" placeholderTextColor="#c4c4c8"
             style={{ marginBottom: fieldErrors.subject ? 4 : 20, borderColor: fieldErrors.subject ? "#ef4444" : undefined }}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+            className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.subject ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.subject}</Text> : null}
 
           {/* Grade level — 1-12 grid */}
@@ -313,17 +313,17 @@ export default function CreateAgentScreen() {
                     paddingVertical: 11,
                     borderRadius: 12,
                     alignItems: "center",
-                    backgroundColor: sel ? "#4338ca" : "#f4f4f5",
+                    backgroundColor: sel ? "#F59E0B" : "#f4f4f5",
                     borderWidth: sel ? 0 : 1,
                     borderColor: "#e4e4e7",
-                    shadowColor: sel ? "#4338ca" : "transparent",
+                    shadowColor: sel ? "#F59E0B" : "transparent",
                     shadowOpacity: 0.3,
                     shadowRadius: 6,
                     shadowOffset: { width: 0, height: 3 },
                   }}
                   className={sel ? "" : "dark:bg-zinc-800 dark:border-zinc-700"}
                 >
-                  <Text style={{ fontWeight: "700", fontSize: 15, color: sel ? "#fff" : "#52525b" }} className={sel ? "" : "dark:text-zinc-200"}>{g}</Text>
+                  <Text style={{ fontWeight: "700", fontSize: 15, color: sel ? "#0B1929" : "#52525b" }} className={sel ? "" : "dark:text-zinc-200"}>{g}</Text>
                 </Pressable>
               );
             })}
@@ -341,13 +341,13 @@ export default function CreateAgentScreen() {
                     borderRadius: 20,
                     paddingHorizontal: 16,
                     paddingVertical: 8,
-                    backgroundColor: sel ? "#4338ca" : "#f4f4f5",
+                    backgroundColor: sel ? "#F59E0B" : "#f4f4f5",
                     borderWidth: sel ? 0 : 1,
                     borderColor: "#e4e4e7",
                   }}
                   className={sel ? "" : "dark:bg-zinc-800 dark:border-zinc-700"}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: sel ? "#fff" : "#52525b" }} className={sel ? "" : "dark:text-zinc-300"}>{lang}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: sel ? "#0B1929" : "#52525b" }} className={sel ? "" : "dark:text-zinc-300"}>{lang}</Text>
                 </Pressable>
               );
             })}
@@ -359,7 +359,7 @@ export default function CreateAgentScreen() {
             placeholder="Describe how the agent should behave, what topics to cover, and how to interact with students…"
             placeholderTextColor="#c4c4c8" multiline numberOfLines={5} textAlignVertical="top"
             style={{ marginBottom: fieldErrors.systemPrompt ? 4 : 20, minHeight: 120, borderColor: fieldErrors.systemPrompt ? "#ef4444" : undefined }}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+            className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.systemPrompt ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.systemPrompt}</Text> : null}
 
           {/* Context ingestion */}
@@ -367,7 +367,7 @@ export default function CreateAgentScreen() {
           <Text className="text-xs text-zinc-400 mb-3">Ground the agent in specific course materials or trusted curriculum content.</Text>
 
           {/* Tab bar */}
-          <View className="flex-row bg-zinc-100 dark:bg-zinc-800 rounded-2xl p-1 mb-4">
+          <View className="flex-row bg-nuru-elevated-light dark:bg-nuru-elevated rounded-2xl p-1 mb-4">
             {(["library", "file", "youtube", "url"] as const).map((tab) => {
               const labels = { library: "📚 Library", file: "📄 File", youtube: "▶️ YouTube", url: "🌐 URL" };
               return (
@@ -386,8 +386,8 @@ export default function CreateAgentScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 8 }} className="mb-3">
                 {LIBRARY_SUBJECTS.map((s) => (
                   <Pressable key={s} onPress={() => setLibrarySubject(s)}
-                    className={`rounded-full px-3 py-1.5 border ${libraryFilterSubject === s ? "bg-indigo-600 border-indigo-600" : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700"}`}>
-                    <Text className={`text-xs font-medium ${libraryFilterSubject === s ? "text-white" : "text-zinc-600 dark:text-zinc-300"}`}>{s}</Text>
+                    className={`rounded-full px-3 py-1.5 border ${libraryFilterSubject === s ? "bg-nuru-primary border-nuru-primary" : "bg-nuru-surface-light dark:bg-nuru-surface border-nuru-border-light dark:border-nuru-border"}`}>
+                    <Text className={`text-xs font-medium ${libraryFilterSubject === s ? "text-nuru-on-primary" : "text-nuru-secondary-light dark:text-nuru-secondary"}`}>{s}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -398,7 +398,7 @@ export default function CreateAgentScreen() {
 
               {/* Curriculum entries */}
               {libraryEntries.length === 0 ? (
-                <View className="bg-white dark:bg-zinc-900 rounded-2xl p-4 items-center border border-zinc-100 dark:border-zinc-800">
+                <View className="bg-nuru-surface-light dark:bg-nuru-surface rounded-2xl p-4 items-center border border-nuru-border-light dark:border-nuru-border">
                   <Text className="text-zinc-400 text-sm text-center">No entries for this subject and grade. Try a different subject or grade.</Text>
                 </View>
               ) : (
@@ -406,18 +406,18 @@ export default function CreateAgentScreen() {
                   {libraryEntries.map((entry) => {
                     const added = addedIds.has(entry.title);
                     return (
-                      <View key={entry.id} className="bg-white dark:bg-zinc-900 rounded-2xl px-4 py-3 border border-zinc-100 dark:border-zinc-800 flex-row items-start gap-3">
+                      <View key={entry.id} className="bg-nuru-surface-light dark:bg-nuru-surface rounded-2xl px-4 py-3 border border-nuru-border-light dark:border-nuru-border flex-row items-start gap-3">
                         <View className="flex-1">
                           <Text className="text-sm font-semibold text-zinc-900 dark:text-white mb-0.5">{entry.title}</Text>
                           <Text className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{entry.description}</Text>
                           <View className="flex-row items-center gap-1">
                             <Text className="text-xs">🏛️</Text>
-                            <Text className="text-xs text-indigo-500 font-medium" numberOfLines={1}>{entry.source.split(" and ")[0]}</Text>
+                            <Text className="text-xs text-nuru-primary font-medium" numberOfLines={1}>{entry.source.split(" and ")[0]}</Text>
                           </View>
                         </View>
                         <Pressable onPress={() => addLibraryEntry(entry)} disabled={added}
-                          className={`rounded-xl px-3 py-2 mt-0.5 ${added ? "bg-emerald-50 dark:bg-emerald-900/30" : "bg-indigo-600"}`}>
-                          <Text className={`text-xs font-semibold ${added ? "text-emerald-600" : "text-white"}`}>{added ? "✓ Added" : "Add"}</Text>
+                          className={`rounded-xl px-3 py-2 mt-0.5 ${added ? "bg-emerald-50 dark:bg-emerald-900/30" : "bg-nuru-primary"}`}>
+                          <Text className={`text-xs font-semibold ${added ? "text-emerald-600" : "text-nuru-on-primary"}`}>{added ? "✓ Added" : "Add"}</Text>
                         </Pressable>
                       </View>
                     );
@@ -431,7 +431,7 @@ export default function CreateAgentScreen() {
                   <Text className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">🌐 Fetch from trusted source</Text>
                   <View className="gap-2">
                     {trustedSources.map((ts) => (
-                      <View key={ts.id} className="bg-white dark:bg-zinc-900 rounded-2xl px-4 py-3 border border-zinc-100 dark:border-zinc-800 flex-row items-start gap-3">
+                      <View key={ts.id} className="bg-nuru-surface-light dark:bg-nuru-surface rounded-2xl px-4 py-3 border border-nuru-border-light dark:border-nuru-border flex-row items-start gap-3">
                         <View className="flex-1">
                           <Text className="text-sm font-semibold text-zinc-900 dark:text-white mb-0.5">{ts.title}</Text>
                           <Text className="text-xs text-zinc-500 mb-1">{ts.description}</Text>
@@ -444,7 +444,7 @@ export default function CreateAgentScreen() {
                         </View>
                         <Pressable onPress={() => handleURLExtract(ts.url)} disabled={extracting}
                           className="bg-zinc-100 dark:bg-zinc-700 rounded-xl px-3 py-2 mt-0.5">
-                          {extracting ? <ActivityIndicator size="small" color="#4f46e5" /> : <Text className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Fetch</Text>}
+                          {extracting ? <ActivityIndicator size="small" color="#F59E0B" /> : <Text className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Fetch</Text>}
                         </Pressable>
                       </View>
                     ))}
@@ -457,8 +457,8 @@ export default function CreateAgentScreen() {
           {/* File tab */}
           {activeContextTab === "file" && (
             <Pressable onPress={handleFilePick} disabled={extracting}
-              className="bg-white dark:bg-zinc-900 border border-dashed border-zinc-300 dark:border-zinc-600 rounded-2xl py-6 items-center justify-center active:scale-95">
-              {extracting ? <ActivityIndicator color="#4f46e5" /> : (
+              className="bg-nuru-surface-light dark:bg-nuru-surface border border-dashed border-nuru-border-light dark:border-nuru-border rounded-2xl py-6 items-center justify-center active:scale-95">
+              {extracting ? <ActivityIndicator color="#F59E0B" /> : (
                 <>
                   <Text className="text-3xl mb-2">📎</Text>
                   <Text className="text-zinc-700 dark:text-zinc-300 font-medium">Upload PDF or DOCX</Text>
@@ -474,9 +474,9 @@ export default function CreateAgentScreen() {
               <TextInput value={urlInput} onChangeText={setUrlInput}
                 placeholder={activeContextTab === "youtube" ? "https://youtube.com/watch?v=..." : "https://example.com/article"}
                 placeholderTextColor="#a1a1aa" autoCapitalize="none" keyboardType="url"
-                className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+                className="flex-1 bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
               <Pressable onPress={() => handleURLExtract()} disabled={extracting || !urlInput.trim()}
-                className="bg-indigo-600 rounded-2xl px-4 items-center justify-center active:scale-95" style={{ opacity: !urlInput.trim() ? 0.5 : 1 }}>
+                className="bg-nuru-primary rounded-2xl px-4 items-center justify-center active:scale-95" style={{ opacity: !urlInput.trim() ? 0.5 : 1 }}>
                 {extracting ? <ActivityIndicator color="white" size="small" /> : <Text className="text-white font-semibold">Extract</Text>}
               </Pressable>
             </View>
@@ -496,7 +496,7 @@ export default function CreateAgentScreen() {
                 Added sources · {contextCharCount.toLocaleString()} chars{contextCharCount > 18000 ? " (truncated to fit limit)" : ""}
               </Text>
               {sources.map((s, i) => (
-                <View key={i} className="flex-row items-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl px-3 py-2.5">
+                <View key={i} className="flex-row items-center bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-xl px-3 py-2.5">
                   <Text className="text-base mr-2">
                     {s.type === "pdf" ? "📄" : s.type === "docx" ? "📝" : s.type === "youtube" ? "▶️" : s.type === "library" ? "📚" : "🌐"}
                   </Text>
@@ -520,21 +520,21 @@ export default function CreateAgentScreen() {
           <View style={{ marginTop: 32, marginBottom: 8, paddingTop: 24, borderTopWidth: 1, borderTopColor: "#f4f4f5" }}>
             <Pressable onPress={handleSave} disabled={saving}
               style={({ pressed }) => ({
-                backgroundColor: "#4338ca",
+                backgroundColor: "#F59E0B",
                 borderRadius: 18,
                 paddingVertical: 18,
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: saving ? 0.7 : pressed ? 0.9 : 1,
-                shadowColor: "#4338ca",
+                shadowColor: "#F59E0B",
                 shadowOpacity: 0.35,
                 shadowRadius: 12,
                 shadowOffset: { width: 0, height: 6 },
                 elevation: 8,
               })}>
               {saving
-                ? <ActivityIndicator color="white" />
-                : <Text style={{ color: "white", fontWeight: "800", fontSize: 16, letterSpacing: 0.3 }}>Create Agent</Text>
+                ? <ActivityIndicator color="#0B1929" />
+                : <Text style={{ color: "#0B1929", fontWeight: "800", fontSize: 16, letterSpacing: 0.3 }}>Create Agent</Text>
               }
             </Pressable>
           </View>
@@ -547,11 +547,11 @@ export default function CreateAgentScreen() {
 function SectionLabel({ children }: { children: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-      <View style={{ flex: 1, height: 1 }} className="bg-zinc-200 dark:bg-zinc-700" />
+      <View style={{ flex: 1, height: 1 }} className="bg-nuru-border-light dark:bg-nuru-border" />
       <Text style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.5, textTransform: "uppercase" }} className="text-zinc-400 dark:text-zinc-500">
         {children}
       </Text>
-      <View style={{ flex: 1, height: 1 }} className="bg-zinc-200 dark:bg-zinc-700" />
+      <View style={{ flex: 1, height: 1 }} className="bg-nuru-border-light dark:bg-nuru-border" />
     </View>
   );
 }
