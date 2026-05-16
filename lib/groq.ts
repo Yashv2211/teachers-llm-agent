@@ -38,9 +38,11 @@ export interface ChatMessage {
 // ─── Rate-limit helpers ───────────────────────────────────────────────────────
 
 function isRateLimited(err: any): boolean {
+  // Groq SDK wraps HTTP errors; status lives in different places across versions
   return (
     err?.status === 429 ||
     err?.statusCode === 429 ||
+    err?.response?.status === 429 ||
     String(err?.message ?? "").includes("429") ||
     String(err?.message ?? "").toLowerCase().includes("rate limit")
   );

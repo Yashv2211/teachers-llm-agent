@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { Nuru } from "@/constants/Colors";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -6,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -36,8 +38,8 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await db.auth.signInWithMagicCode({ email: email.trim(), code: code.trim() });
-    } catch {
-      Alert.alert("That code doesn't match", "Try again.");
+    } catch (err: any) {
+      Alert.alert("Invalid code", "Please check the code and try again.");
       setLoading(false);
     }
   }
@@ -48,101 +50,77 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-nuru-bg-light dark:bg-nuru-bg">
+    <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
-        <View className="flex-1 items-center justify-center px-8">
-          {/* Nuru wordmark */}
-          <View style={{ alignItems: "center", marginBottom: 32 }}>
-            <View style={{
-              width: 64,
-              height: 64,
-              borderRadius: 9999,
-              backgroundColor: "#F59E0B",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 16,
-              shadowColor: "#F59E0B",
-              shadowOpacity: 0.4,
-              shadowRadius: 20,
-              shadowOffset: { width: 0, height: 8 },
-            }}>
-              <Text style={{ fontSize: 28, fontWeight: "800", color: "#0B1929", letterSpacing: -1 }}>N</Text>
+        <View style={styles.container}>
+          {/* Logo mark */}
+          <View style={styles.logoWrap}>
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoBadgeText}>✦</Text>
             </View>
-            <Text style={{ fontSize: 36, fontWeight: "800", letterSpacing: -1.5, color: "#0B1929" }} className="dark:text-nuru-text">
-              Nuru
-            </Text>
+            <Text style={styles.logoTitle}>Nuru.</Text>
+            <Text style={styles.logoSub}>The Ray of Hope</Text>
           </View>
 
-          {/* Headline */}
-          <Text style={{ fontSize: 20, fontWeight: "700", textAlign: "center", marginBottom: 6, letterSpacing: -0.3 }} className="text-nuru-text-light dark:text-nuru-text">
-            Welcome to Nuru
-          </Text>
-          <Text style={{ fontSize: 15, textAlign: "center", marginBottom: 32, lineHeight: 22 }} className="text-nuru-secondary-light dark:text-nuru-secondary">
-            {step === "email"
-              ? "Enter your email to get started — no password required."
-              : `Check your email for a 6-digit code.`}
+          <Text style={styles.headline}>AI voice agents for your classroom</Text>
+          <Text style={styles.subline}>
+            Create interactive voice agents grounded in your course materials.
           </Text>
 
-          {/* Input */}
-          <View className="w-full mb-3">
+          {/* Input area */}
+          <View style={styles.inputWrap}>
             {step === "email" ? (
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 placeholder="Your email address"
-                placeholderTextColor="#7A8FA8"
+                placeholderTextColor={Nuru.inkLight}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
                 onSubmitEditing={handleSendCode}
-                className="w-full bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-4 text-base text-nuru-text-light dark:text-nuru-text"
+                style={styles.input}
               />
             ) : (
               <>
-                <Text style={{ fontSize: 13, textAlign: "center", marginBottom: 12 }} className="text-nuru-secondary-light dark:text-nuru-secondary">
-                  Sent to{" "}
-                  <Text style={{ fontWeight: "700" }} className="text-nuru-text-light dark:text-nuru-text">{email}</Text>
+                <Text style={styles.codeHint}>
+                  Enter the 6-digit code sent to{" "}
+                  <Text style={{ color: Nuru.navy, fontWeight: "600" }}>{email}</Text>
                 </Text>
                 <TextInput
                   value={code}
                   onChangeText={setCode}
                   placeholder="000000"
-                  placeholderTextColor="#7A8FA8"
+                  placeholderTextColor={Nuru.inkLight}
                   keyboardType="number-pad"
                   maxLength={6}
                   autoFocus
                   onSubmitEditing={handleVerifyCode}
-                  className="w-full bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-4 text-2xl text-center tracking-widest text-nuru-text-light dark:text-nuru-text"
+                  style={[styles.input, styles.inputCode]}
                 />
               </>
             )}
           </View>
 
-          {/* CTA button */}
+          {/* CTA */}
           <Pressable
             disabled={loading || (step === "email" ? !email.trim() : !code.trim())}
             onPress={handleSignIn}
-            style={({ pressed }) => ({
-              width: "100%",
-              backgroundColor: "#F59E0B",
-              borderRadius: 9999,
-              paddingVertical: 16,
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: loading || (step === "email" ? !email.trim() : !code.trim()) ? 0.5 : pressed ? 0.85 : 1,
-              shadowColor: "#F59E0B",
-              shadowOpacity: 0.35,
-              shadowRadius: 12,
-              shadowOffset: { width: 0, height: 6 },
-            })}
+            style={({ pressed }) => [
+              styles.btn,
+              {
+                opacity: loading || (step === "email" ? !email.trim() : !code.trim()) ? 0.5 : 1,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
+            ]}
           >
             {loading ? (
-              <ActivityIndicator color="#0B1929" />
+              <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={{ color: "#0B1929", fontWeight: "700", fontSize: 16 }}>
+              <Text style={styles.btnText}>
                 {step === "email" ? "Send Code" : "Sign In"}
               </Text>
             )}
@@ -150,13 +128,147 @@ export default function LoginScreen() {
 
           {step === "code" && (
             <Pressable onPress={() => { setStep("email"); setCode(""); }} style={{ marginTop: 16 }}>
-              <Text style={{ fontSize: 14 }} className="text-nuru-primary">
-                Send a new code
-              </Text>
+              <Text style={styles.backLink}>← Use a different email</Text>
             </Pressable>
           )}
+
+          {/* Footnote */}
+          <Text style={styles.footnote}>
+            * Built with communities · Measured by outcomes
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: Nuru.navy,
+  },
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  logoWrap: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  logoBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: Nuru.navyMid,
+    borderWidth: 1,
+    borderColor: Nuru.sky + "55",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    shadowColor: Nuru.sky,
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  logoBadgeText: {
+    fontSize: 26,
+    color: Nuru.sky,
+  },
+  logoTitle: {
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontSize: 44,
+    fontStyle: "italic",
+    fontWeight: "300",
+    color: "#fff",
+    letterSpacing: -1,
+    lineHeight: 48,
+  },
+  logoSub: {
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 10,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.35)",
+    marginTop: 6,
+  },
+  headline: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 8,
+    letterSpacing: -0.3,
+  },
+  subline: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.45)",
+    textAlign: "center",
+    lineHeight: 20,
+    maxWidth: 280,
+    marginBottom: 36,
+    fontWeight: "300",
+  },
+  inputWrap: {
+    width: "100%",
+    marginBottom: 12,
+  },
+  input: {
+    width: "100%",
+    backgroundColor: Nuru.navyMid,
+    borderWidth: 1,
+    borderColor: Nuru.sky + "44",
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    fontSize: 15,
+    color: "#fff",
+  },
+  inputCode: {
+    fontSize: 24,
+    textAlign: "center",
+    letterSpacing: 8,
+  },
+  codeHint: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
+    marginBottom: 12,
+    fontWeight: "300",
+  },
+  btn: {
+    width: "100%",
+    backgroundColor: Nuru.sky,
+    borderRadius: 16,
+    paddingVertical: 17,
+    alignItems: "center",
+    shadowColor: Nuru.sky,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  btnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+  backLink: {
+    fontSize: 13,
+    color: Nuru.skyLight,
+    fontWeight: "500",
+  },
+  footnote: {
+    position: "absolute",
+    bottom: 32,
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: "rgba(255,255,255,0.2)",
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
+});

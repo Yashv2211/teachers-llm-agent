@@ -1,3 +1,19 @@
+// Nuru brand palette (editorial navy/sky — used by landing + login)
+export const Nuru = {
+  navy: '#0b1e36',
+  navyDeep: '#061427',
+  navyMid: '#152d4e',
+  sky: '#7ba7c9',
+  skyLight: '#b8d4e8',
+  paper: '#f4f1ec',
+  paperWarm: '#ede9e2',
+  beam: '#f0e8d4',
+  ink: '#1a1814',
+  inkMid: '#4a4540',
+  inkLight: '#8a8480',
+};
+
+// Nuru brand palette (amber/dark — used by teacher dashboard, VoiceOrb, Tailwind)
 export const NuruColors = {
   background: "#0B1929",
   surface: "#152339",
