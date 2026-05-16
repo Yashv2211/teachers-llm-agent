@@ -243,7 +243,7 @@ export default function CreateAgentScreen() {
 
           {/* Header */}
           <View style={{ marginBottom: 28 }}>
-            <Text style={{ fontSize: 11, fontWeight: "700", color: "#6366f1", letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: "#7ba7c9", letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
               Create
             </Text>
             <Text style={{ fontSize: 30, fontWeight: "800", letterSpacing: -0.8 }} className="text-zinc-900 dark:text-white">
@@ -269,10 +269,10 @@ export default function CreateAgentScreen() {
                     paddingVertical: 14,
                     minWidth: 76,
                     gap: 6,
-                    backgroundColor: sel ? "#4338ca" : "#f4f4f5",
+                    backgroundColor: sel ? "#0b1e36" : "#f4f4f5",
                     borderWidth: sel ? 0 : 1,
                     borderColor: "#e4e4e7",
-                    shadowColor: sel ? "#4338ca" : "transparent",
+                    shadowColor: sel ? "#0b1e36" : "transparent",
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
                     shadowOffset: { width: 0, height: 4 },
@@ -313,10 +313,10 @@ export default function CreateAgentScreen() {
                     paddingVertical: 11,
                     borderRadius: 12,
                     alignItems: "center",
-                    backgroundColor: sel ? "#4338ca" : "#f4f4f5",
+                    backgroundColor: sel ? "#0b1e36" : "#f4f4f5",
                     borderWidth: sel ? 0 : 1,
                     borderColor: "#e4e4e7",
-                    shadowColor: sel ? "#4338ca" : "transparent",
+                    shadowColor: sel ? "#0b1e36" : "transparent",
                     shadowOpacity: 0.3,
                     shadowRadius: 6,
                     shadowOffset: { width: 0, height: 3 },
@@ -341,7 +341,7 @@ export default function CreateAgentScreen() {
                     borderRadius: 20,
                     paddingHorizontal: 16,
                     paddingVertical: 8,
-                    backgroundColor: sel ? "#4338ca" : "#f4f4f5",
+                    backgroundColor: sel ? "#0b1e36" : "#f4f4f5",
                     borderWidth: sel ? 0 : 1,
                     borderColor: "#e4e4e7",
                   }}
@@ -386,7 +386,7 @@ export default function CreateAgentScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 8 }} className="mb-3">
                 {LIBRARY_SUBJECTS.map((s) => (
                   <Pressable key={s} onPress={() => setLibrarySubject(s)}
-                    className={`rounded-full px-3 py-1.5 border ${libraryFilterSubject === s ? "bg-indigo-600 border-indigo-600" : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700"}`}>
+                    className={`rounded-full px-3 py-1.5 border ${libraryFilterSubject === s ? "bg-[#0b1e36] border-[#0b1e36]" : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700"}`}>
                     <Text className={`text-xs font-medium ${libraryFilterSubject === s ? "text-white" : "text-zinc-600 dark:text-zinc-300"}`}>{s}</Text>
                   </Pressable>
                 ))}
@@ -416,7 +416,7 @@ export default function CreateAgentScreen() {
                           </View>
                         </View>
                         <Pressable onPress={() => addLibraryEntry(entry)} disabled={added}
-                          className={`rounded-xl px-3 py-2 mt-0.5 ${added ? "bg-emerald-50 dark:bg-emerald-900/30" : "bg-indigo-600"}`}>
+                          className={`rounded-xl px-3 py-2 mt-0.5 ${added ? "bg-emerald-50 dark:bg-emerald-900/30" : "bg-[#0b1e36]"}`}>
                           <Text className={`text-xs font-semibold ${added ? "text-emerald-600" : "text-white"}`}>{added ? "✓ Added" : "Add"}</Text>
                         </Pressable>
                       </View>
@@ -444,7 +444,7 @@ export default function CreateAgentScreen() {
                         </View>
                         <Pressable onPress={() => handleURLExtract(ts.url)} disabled={extracting}
                           className="bg-zinc-100 dark:bg-zinc-700 rounded-xl px-3 py-2 mt-0.5">
-                          {extracting ? <ActivityIndicator size="small" color="#4f46e5" /> : <Text className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Fetch</Text>}
+                          {extracting ? <ActivityIndicator size="small" color="#7ba7c9" /> : <Text className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Fetch</Text>}
                         </Pressable>
                       </View>
                     ))}
@@ -458,7 +458,7 @@ export default function CreateAgentScreen() {
           {activeContextTab === "file" && (
             <Pressable onPress={handleFilePick} disabled={extracting}
               className="bg-white dark:bg-zinc-900 border border-dashed border-zinc-300 dark:border-zinc-600 rounded-2xl py-6 items-center justify-center active:scale-95">
-              {extracting ? <ActivityIndicator color="#4f46e5" /> : (
+              {extracting ? <ActivityIndicator color="#7ba7c9" /> : (
                 <>
                   <Text className="text-3xl mb-2">📎</Text>
                   <Text className="text-zinc-700 dark:text-zinc-300 font-medium">Upload PDF or DOCX</Text>
@@ -476,7 +476,7 @@ export default function CreateAgentScreen() {
                 placeholderTextColor="#a1a1aa" autoCapitalize="none" keyboardType="url"
                 className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
               <Pressable onPress={() => handleURLExtract()} disabled={extracting || !urlInput.trim()}
-                className="bg-indigo-600 rounded-2xl px-4 items-center justify-center active:scale-95" style={{ opacity: !urlInput.trim() ? 0.5 : 1 }}>
+                className="bg-[#0b1e36] rounded-2xl px-4 items-center justify-center active:scale-95" style={{ opacity: !urlInput.trim() ? 0.5 : 1 }}>
                 {extracting ? <ActivityIndicator color="white" size="small" /> : <Text className="text-white font-semibold">Extract</Text>}
               </Pressable>
             </View>
@@ -520,13 +520,13 @@ export default function CreateAgentScreen() {
           <View style={{ marginTop: 32, marginBottom: 8, paddingTop: 24, borderTopWidth: 1, borderTopColor: "#f4f4f5" }}>
             <Pressable onPress={handleSave} disabled={saving}
               style={({ pressed }) => ({
-                backgroundColor: "#4338ca",
+                backgroundColor: "#0b1e36",
                 borderRadius: 18,
                 paddingVertical: 18,
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: saving ? 0.7 : pressed ? 0.9 : 1,
-                shadowColor: "#4338ca",
+                shadowColor: "#0b1e36",
                 shadowOpacity: 0.35,
                 shadowRadius: 12,
                 shadowOffset: { width: 0, height: 6 },

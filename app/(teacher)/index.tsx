@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { Nuru } from "@/constants/Colors";
 import { AppSchema } from "@/instant.schema";
 import { InstaQLEntity } from "@instantdb/react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -87,7 +88,7 @@ export default function DashboardScreen() {
           style={{
             fontSize: 11,
             fontWeight: "700",
-            color: "#6366f1",
+            color: Nuru.sky,
             letterSpacing: 2,
             textTransform: "uppercase",
             marginBottom: 6,
@@ -153,11 +154,11 @@ export default function DashboardScreen() {
           <Pressable
             onPress={() => router.push("/(teacher)/create")}
             style={{
-              backgroundColor: "#4338ca",
+              backgroundColor: Nuru.navy,
               borderRadius: 16,
               paddingHorizontal: 28,
               paddingVertical: 14,
-              shadowColor: "#4338ca",
+              shadowColor: Nuru.navy,
               shadowOpacity: 0.4,
               shadowRadius: 12,
               shadowOffset: { width: 0, height: 6 },
@@ -193,11 +194,11 @@ export default function DashboardScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 8,
-                backgroundColor: "#4338ca",
+                backgroundColor: Nuru.navy,
                 borderRadius: 18,
                 paddingHorizontal: 22,
                 paddingVertical: 15,
-                shadowColor: "#4338ca",
+                shadowColor: Nuru.navy,
                 shadowOpacity: 0.45,
                 shadowRadius: 16,
                 shadowOffset: { width: 0, height: 8 },
@@ -256,7 +257,7 @@ function AgentCard({
   onDeleteCancel: () => void;
   onDeleteConfirm: () => void;
 }) {
-  const accent = SUBJECT_ACCENT[agent.subject] ?? "#4f46e5";
+  const accent = SUBJECT_ACCENT[agent.subject] ?? Nuru.navy;
   const emoji = SUBJECT_EMOJI[agent.subject] ?? "🤖";
 
   const gradeLabel = (g: string) => {

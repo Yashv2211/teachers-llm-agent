@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { Nuru } from "@/constants/Colors";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -6,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -48,85 +50,225 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+    <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
-        <View className="flex-1 items-center justify-center px-8">
-          {/* Logo */}
-          <View className="w-24 h-24 rounded-3xl bg-indigo-600 items-center justify-center mb-8 shadow-lg">
-            <Text className="text-5xl">🎓</Text>
+        <View style={styles.container}>
+          {/* Logo mark */}
+          <View style={styles.logoWrap}>
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoBadgeText}>✦</Text>
+            </View>
+            <Text style={styles.logoTitle}>Nuru.</Text>
+            <Text style={styles.logoSub}>The Ray of Hope</Text>
           </View>
 
-          <Text className="text-4xl font-bold text-zinc-900 dark:text-white text-center mb-3">
-            Nuru
-          </Text>
-          <Text className="text-lg text-zinc-500 dark:text-zinc-400 text-center mb-2">
-            AI voice agents for your classroom
-          </Text>
-          <Text className="text-sm text-zinc-400 dark:text-zinc-500 text-center mb-10 max-w-xs">
+          <Text style={styles.headline}>AI voice agents for your classroom</Text>
+          <Text style={styles.subline}>
             Create interactive voice agents grounded in your course materials.
           </Text>
 
-          {/* Input */}
-          <View className="w-full mb-3">
+          {/* Input area */}
+          <View style={styles.inputWrap}>
             {step === "email" ? (
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 placeholder="Your email address"
-                placeholderTextColor="#a1a1aa"
+                placeholderTextColor={Nuru.inkLight}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
                 onSubmitEditing={handleSendCode}
-                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-4 text-base text-zinc-900 dark:text-white"
+                style={styles.input}
               />
             ) : (
               <>
-                <Text className="text-sm text-zinc-500 text-center mb-3">
+                <Text style={styles.codeHint}>
                   Enter the 6-digit code sent to{" "}
-                  <Text className="font-semibold text-zinc-800 dark:text-zinc-200">{email}</Text>
+                  <Text style={{ color: Nuru.navy, fontWeight: "600" }}>{email}</Text>
                 </Text>
                 <TextInput
                   value={code}
                   onChangeText={setCode}
                   placeholder="000000"
-                  placeholderTextColor="#a1a1aa"
+                  placeholderTextColor={Nuru.inkLight}
                   keyboardType="number-pad"
                   maxLength={6}
                   autoFocus
                   onSubmitEditing={handleVerifyCode}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-4 text-2xl text-center tracking-widest text-zinc-900 dark:text-white"
+                  style={[styles.input, styles.inputCode]}
                 />
               </>
             )}
           </View>
 
-          {/* CTA button */}
+          {/* CTA */}
           <Pressable
             disabled={loading || (step === "email" ? !email.trim() : !code.trim())}
             onPress={handleSignIn}
-            className="w-full bg-indigo-600 rounded-2xl py-4 items-center justify-center active:scale-95"
-            style={{ opacity: loading || (step === "email" ? !email.trim() : !code.trim()) ? 0.6 : 1 }}
+            style={({ pressed }) => [
+              styles.btn,
+              {
+                opacity: loading || (step === "email" ? !email.trim() : !code.trim()) ? 0.5 : 1,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
+            ]}
           >
             {loading ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-white font-semibold text-base">
+              <Text style={styles.btnText}>
                 {step === "email" ? "Send Code" : "Sign In"}
               </Text>
             )}
           </Pressable>
 
           {step === "code" && (
-            <Pressable onPress={() => { setStep("email"); setCode(""); }} className="mt-4">
-              <Text className="text-sm text-indigo-600">Use a different email</Text>
+            <Pressable onPress={() => { setStep("email"); setCode(""); }} style={{ marginTop: 16 }}>
+              <Text style={styles.backLink}>← Use a different email</Text>
             </Pressable>
           )}
+
+          {/* Footnote */}
+          <Text style={styles.footnote}>
+            * Built with communities · Measured by outcomes
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: Nuru.navy,
+  },
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  logoWrap: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  logoBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: Nuru.navyMid,
+    borderWidth: 1,
+    borderColor: Nuru.sky + "55",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    shadowColor: Nuru.sky,
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  logoBadgeText: {
+    fontSize: 26,
+    color: Nuru.sky,
+  },
+  logoTitle: {
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontSize: 44,
+    fontStyle: "italic",
+    fontWeight: "300",
+    color: "#fff",
+    letterSpacing: -1,
+    lineHeight: 48,
+  },
+  logoSub: {
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 10,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.35)",
+    marginTop: 6,
+  },
+  headline: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 8,
+    letterSpacing: -0.3,
+  },
+  subline: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.45)",
+    textAlign: "center",
+    lineHeight: 20,
+    maxWidth: 280,
+    marginBottom: 36,
+    fontWeight: "300",
+  },
+  inputWrap: {
+    width: "100%",
+    marginBottom: 12,
+  },
+  input: {
+    width: "100%",
+    backgroundColor: Nuru.navyMid,
+    borderWidth: 1,
+    borderColor: Nuru.sky + "44",
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    fontSize: 15,
+    color: "#fff",
+  },
+  inputCode: {
+    fontSize: 24,
+    textAlign: "center",
+    letterSpacing: 8,
+  },
+  codeHint: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
+    marginBottom: 12,
+    fontWeight: "300",
+  },
+  btn: {
+    width: "100%",
+    backgroundColor: Nuru.sky,
+    borderRadius: 16,
+    paddingVertical: 17,
+    alignItems: "center",
+    shadowColor: Nuru.sky,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  btnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+  backLink: {
+    fontSize: 13,
+    color: Nuru.skyLight,
+    fontWeight: "500",
+  },
+  footnote: {
+    position: "absolute",
+    bottom: 32,
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: "rgba(255,255,255,0.2)",
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
+});

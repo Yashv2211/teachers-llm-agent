@@ -36,7 +36,7 @@ export default function SettingsScreen() {
               Account
             </Text>
             <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-full bg-indigo-600 items-center justify-center">
+              <View className="w-10 h-10 rounded-full bg-[#0b1e36] border border-[#7ba7c9] items-center justify-center">
                 <Text className="text-white font-bold text-base">
                   {user?.email?.[0]?.toUpperCase() ?? "T"}
                 </Text>

@@ -56,7 +56,7 @@ const SUBJECT_ACCENT: Record<string, string> = {
 };
 
 const DEFAULT_BG = "#1e1b4b";
-const DEFAULT_ACCENT = "#4f46e5";
+const DEFAULT_ACCENT = "#7ba7c9";
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ export default function StudentScreen() {
   if (isLoading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" }}>
-        <ActivityIndicator size="large" color="#4f46e5" />
+        <ActivityIndicator size="large" color="#7ba7c9" />
       </View>
     );
   }

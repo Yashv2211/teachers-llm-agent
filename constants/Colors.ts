@@ -1,26 +1,33 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// Nuru brand palette (from nuru-site.html)
+export const Nuru = {
+  navy: '#0b1e36',
+  navyDeep: '#061427',
+  navyMid: '#152d4e',
+  sky: '#7ba7c9',
+  skyLight: '#b8d4e8',
+  paper: '#f4f1ec',
+  paperWarm: '#ede9e2',
+  beam: '#f0e8d4',
+  ink: '#1a1814',
+  inkMid: '#4a4540',
+  inkLight: '#8a8480',
+};
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: Nuru.ink,
+    background: Nuru.paper,
+    tint: Nuru.sky,
+    icon: Nuru.inkLight,
+    tabIconDefault: Nuru.inkLight,
+    tabIconSelected: Nuru.navy,
   },
   dark: {
     text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    background: Nuru.navyDeep,
+    tint: Nuru.skyLight,
+    icon: Nuru.sky,
+    tabIconDefault: Nuru.sky,
+    tabIconSelected: Nuru.skyLight,
   },
 };
