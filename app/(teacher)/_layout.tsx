@@ -18,11 +18,11 @@ export default function TeacherLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#7ba7c9",
-        tabBarInactiveTintColor: isDark ? "#71717a" : "#a1a1aa",
+        tabBarActiveTintColor: "#F59E0B",
+        tabBarInactiveTintColor: isDark ? "#7A8FA8" : "#6B7FA8",
         tabBarStyle: {
-          backgroundColor: isDark ? "#09090b" : "#ffffff",
-          borderTopColor: isDark ? "#27272a" : "#f4f4f5",
+          backgroundColor: isDark ? "#0B1929" : "#F7F3EE",
+          borderTopColor: isDark ? "#243652" : "#E2D9CE",
           borderTopWidth: 1,
           paddingTop: 4,
         },

@@ -1,4 +1,4 @@
-// Nuru brand palette (from nuru-site.html)
+// Nuru brand palette (editorial navy/sky — used by landing + login)
 export const Nuru = {
   navy: '#0b1e36',
   navyDeep: '#061427',
@@ -13,21 +13,49 @@ export const Nuru = {
   inkLight: '#8a8480',
 };
 
+// Nuru brand palette (amber/dark — used by teacher dashboard, VoiceOrb, Tailwind)
+export const NuruColors = {
+  background: "#0B1929",
+  surface: "#152339",
+  elevated: "#1E3050",
+  primary: "#F59E0B",
+  primaryHover: "#FBBF24",
+  onPrimary: "#0B1929",
+  text: "#E8DDD0",
+  muted: "#C8BEAF",
+  secondary: "#7A8FA8",
+  border: "#243652",
+  success: "#34D399",
+  error: "#F87171",
+  warning: "#FBBF24",
+  info: "#60A5FA",
+  orbFrom: "#F59E0B",
+  orbTo: "#06B6D4",
+
+  backgroundLight: "#F7F3EE",
+  surfaceLight: "#FFFFFF",
+  elevatedLight: "#F0EBE2",
+  textLight: "#0B1929",
+  mutedLight: "#1E3050",
+  secondaryLight: "#6B7FA8",
+  borderLight: "#E2D9CE",
+};
+
 export const Colors = {
   light: {
-    text: Nuru.ink,
-    background: Nuru.paper,
-    tint: Nuru.sky,
-    icon: Nuru.inkLight,
-    tabIconDefault: Nuru.inkLight,
-    tabIconSelected: Nuru.navy,
+    text: NuruColors.textLight,
+    background: NuruColors.backgroundLight,
+    tint: NuruColors.primary,
+    icon: NuruColors.secondaryLight,
+    tabIconDefault: NuruColors.secondaryLight,
+    tabIconSelected: NuruColors.primary,
   },
   dark: {
-    text: '#ECEDEE',
-    background: Nuru.navyDeep,
-    tint: Nuru.skyLight,
-    icon: Nuru.sky,
-    tabIconDefault: Nuru.sky,
-    tabIconSelected: Nuru.skyLight,
+    text: NuruColors.text,
+    background: NuruColors.background,
+    tint: NuruColors.primary,
+    icon: NuruColors.secondary,
+    tabIconDefault: NuruColors.secondary,
+    tabIconSelected: NuruColors.primary,
   },
 };

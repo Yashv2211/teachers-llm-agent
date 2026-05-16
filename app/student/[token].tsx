@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { id } from "@instantdb/react-native";
-import { generateGreeting, GroqRateLimitError, sendMessage, transcribeAudio } from "@/lib/groq";
-import { speak, TTSHandle } from "@/lib/tts";
+import { speak } from "@/lib/tts";
 import { VoiceOrb } from "@/components/VoiceOrb";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
@@ -18,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { generateGreeting, GroqRateLimitError, sendMessage, transcribeAudio } from "@/lib/groq";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,23 +40,23 @@ const SUBJECT_EMOJI: Record<string, string> = {
 };
 
 const SUBJECT_BG: Record<string, string> = {
-  Mathematics: "#1e3a8a",
-  Science: "#064e3b",
-  English: "#3b0764",
-  History: "#78350f",
-  Geography: "#14532d",
+  Mathematics: "#0B2040",
+  Science: "#062920",
+  English: "#1A0F00",
+  History: "#1A0A00",
+  Geography: "#041D10",
 };
 
 const SUBJECT_ACCENT: Record<string, string> = {
-  Mathematics: "#3b82f6",
-  Science: "#10b981",
-  English: "#8b5cf6",
-  History: "#f59e0b",
-  Geography: "#22c55e",
+  Mathematics: "#60A5FA",
+  Science: "#34D399",
+  English: "#F59E0B",
+  History: "#F59E0B",
+  Geography: "#34D399",
 };
 
-const DEFAULT_BG = "#1e1b4b";
-const DEFAULT_ACCENT = "#7ba7c9";
+const DEFAULT_BG = "#0B1929";
+const DEFAULT_ACCENT = "#F59E0B";
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -75,20 +75,20 @@ export default function StudentScreen() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" }}>
-        <ActivityIndicator size="large" color="#7ba7c9" />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0B1929" }}>
+        <ActivityIndicator size="large" color="#F59E0B" />
       </View>
     );
   }
 
   if (!agent) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff", paddingHorizontal: 32 }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0B1929", paddingHorizontal: 32 }}>
         <Text style={{ fontSize: 48, marginBottom: 16 }}>🔍</Text>
-        <Text style={{ fontSize: 20, fontWeight: "700", color: "#18181b", textAlign: "center", marginBottom: 8 }}>
+        <Text style={{ fontSize: 20, fontWeight: "700", color: "#E8DDD0", textAlign: "center", marginBottom: 8 }}>
           Agent not found
         </Text>
-        <Text style={{ fontSize: 14, color: "#71717a", textAlign: "center" }}>
+        <Text style={{ fontSize: 14, color: "#7A8FA8", textAlign: "center" }}>
           This link may be invalid or the agent has been removed.
         </Text>
       </View>
@@ -125,25 +125,26 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
   // Generate opening greeting on mount
   useEffect(() => {
-    generateGreeting(
-      agent.systemPrompt,
-      agent.contextText ?? null,
-      agent.gradeLevel ?? "6",
-      agent.language ?? "English",
-      agent.subject ?? "",
-      agent.name ?? ""
-    )
-      .then((greeting) => {
+    (async () => {
+      try {
+        const greeting = await generateGreeting(
+          agent.systemPrompt,
+          agent.contextText ?? null,
+          agent.gradeLevel ?? "6",
+          agent.language ?? "English",
+          agent.subject ?? "",
+          agent.name ?? ""
+        );
         greetingTextRef.current = greeting;
         setMessages([{ id: "greeting", role: "assistant", text: greeting }]);
         scrollToBottom();
-      })
-      .catch(() => {
+      } catch {
         // silently skip — student can still interact normally
-      })
-      .finally(() => {
+      } finally {
         setGreetingLoading(false);
-      });
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -273,6 +274,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
         setVoiceState("thinking");
         setStatusText("Thinking…");
+
 
         try {
           const transcript = await transcribeAudio(audioBlob, agent.language);
@@ -420,7 +422,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
                   fontStyle: "italic",
                 }}
               >
-                "{greetingTextRef.current ?? `Hi! I'm your ${agent.subject} helper. Let's get started!`}"
+                {'"'}{greetingTextRef.current ?? `Hi! I'm your ${agent.subject} helper. Let's get started!`}{'"'}
               </Text>
             )}
           </View>
@@ -428,21 +430,27 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
           {/* Start button */}
           <Pressable
             disabled={greetingLoading}
+            accessibilityLabel="Start learning"
+            accessibilityRole="button"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setStarted(true);
               if (greetingTextRef.current) speakReply(greetingTextRef.current);
             }}
             style={({ pressed }) => ({
-              backgroundColor: pressed ? "#f0f0ff" : "#ffffff",
+              backgroundColor: "#F59E0B",
               borderRadius: 18,
               paddingVertical: 18,
               width: "100%",
               alignItems: "center",
-              opacity: greetingLoading ? 0.5 : 1,
+              opacity: greetingLoading ? 0.5 : pressed ? 0.85 : 1,
+              shadowColor: "#F59E0B",
+              shadowOpacity: 0.4,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
             })}
           >
-            <Text style={{ color: bgColor, fontSize: 17, fontWeight: "800", letterSpacing: 0.3 }}>
+            <Text style={{ color: "#0B1929", fontSize: 17, fontWeight: "800", letterSpacing: 0.3 }}>
               Start Learning →
             </Text>
           </Pressable>
@@ -467,7 +475,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
   // ─── Chat UI ──────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top", "bottom"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#0B1929" }} edges={["top", "bottom"]}>
 
       {/* ── Slim top bar ── */}
       <View
@@ -478,26 +486,26 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
           flexDirection: "row",
           alignItems: "center",
           gap: 12,
-          backgroundColor: "#ffffff",
+          backgroundColor: "#0B1929",
         }}
       >
         {/* Accent dot */}
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: accentColor }} />
-        <Text style={{ fontSize: 13, fontWeight: "700", color: "#18181b", letterSpacing: 0.2, flex: 1 }}>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: "#E8DDD0", letterSpacing: 0.2, flex: 1 }}>
           {agent.name}
         </Text>
-        <Text style={{ fontSize: 12, color: "#a1a1aa" }}>
+        <Text style={{ fontSize: 12, color: "#7A8FA8" }}>
           {agent.subject} · {gradeLabel(agent.gradeLevel ?? "6")}
         </Text>
       </View>
 
       {/* thin rule */}
-      <View style={{ height: 1, backgroundColor: "#f2f2f5" }} />
+      <View style={{ height: 1, backgroundColor: "#243652" }} />
 
       {/* ── Conversation ── */}
       <ScrollView
         ref={scrollRef}
-        style={{ flex: 1, backgroundColor: "#ffffff" }}
+        style={{ flex: 1, backgroundColor: "#0B1929" }}
         contentContainerStyle={{ paddingBottom: 16 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -532,10 +540,10 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
           </View>
           {/* Hero text */}
           <View style={{ flex: 1, paddingTop: 6 }}>
-            <Text style={{ fontSize: 16, color: "#71717a", fontWeight: "500", marginBottom: 4 }}>
+            <Text style={{ fontSize: 16, color: "#7A8FA8", fontWeight: "500", marginBottom: 4 }}>
               Hi there!
             </Text>
-            <Text style={{ fontSize: 24, fontWeight: "800", color: "#18181b", letterSpacing: -0.5, lineHeight: 30 }}>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: "#E8DDD0", letterSpacing: -0.5, lineHeight: 30 }}>
               How can I{"\n"}help you?
             </Text>
           </View>
@@ -543,20 +551,28 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
         {/* ── Loading state ── */}
         {greetingLoading && (
-          <View style={{ paddingHorizontal: 22, marginBottom: 12 }}>
+          <View
+            style={{ paddingHorizontal: 22, marginBottom: 12 }}
+            accessibilityLabel="Loading greeting"
+            accessibilityState={{ busy: true }}
+          >
             <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
               <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: accentColor + "18", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Text style={{ fontSize: 16 }}>{subjectEmoji}</Text>
               </View>
-              <View style={{ backgroundColor: "#f6f6f9", borderRadius: 18, borderBottomLeftRadius: 4, paddingHorizontal: 16, paddingVertical: 12 }}>
-                <Text style={{ color: "#c4c4c8", fontSize: 20, letterSpacing: 5 }}>···</Text>
+              <View style={{ backgroundColor: "#152339", borderRadius: 18, borderBottomLeftRadius: 4, paddingHorizontal: 16, paddingVertical: 12 }}>
+                <Text style={{ color: "#7A8FA8", fontSize: 20, letterSpacing: 5 }}>···</Text>
               </View>
             </View>
           </View>
         )}
 
         {/* ── Messages ── */}
-        <View style={{ paddingHorizontal: 16, gap: 10 }}>
+        <View
+          style={{ paddingHorizontal: 16, gap: 10 }}
+          accessibilityLiveRegion="polite"
+          accessibilityLabel="Conversation"
+        >
           {messages.map((msg, idx) => {
             const isUser = msg.role === "user";
             const prevIsUser = idx > 0 && messages[idx - 1].role === "user";
@@ -567,14 +583,14 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
               <View key={msg.id} style={{ alignSelf: "flex-end", maxWidth: "80%", marginBottom: 2 }}>
                 <View
                   style={{
-                    backgroundColor: "#f4f4f8",
+                    backgroundColor: "#1A3A5C",
                     borderRadius: 22,
                     borderBottomRightRadius: 5,
                     paddingHorizontal: 18,
                     paddingVertical: 13,
                   }}
                 >
-                  <Text style={{ fontSize: 15.5, lineHeight: 24, color: "#18181b", fontWeight: "400" }}>
+                  <Text style={{ fontSize: 15.5, lineHeight: 24, color: "#E8DDD0", fontWeight: "400" }}>
                     {msg.text}
                   </Text>
                 </View>
@@ -603,20 +619,20 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
                 <View
                   style={{
                     flex: 1,
-                    backgroundColor: "#ffffff",
+                    backgroundColor: "#152339",
                     borderRadius: 22,
                     borderBottomLeftRadius: 5,
                     paddingHorizontal: 18,
                     paddingVertical: 14,
                     shadowColor: "#000",
-                    shadowOpacity: 0.07,
+                    shadowOpacity: 0.2,
                     shadowRadius: 12,
                     shadowOffset: { width: 0, height: 3 },
                     borderWidth: 1,
-                    borderColor: "#f0f0f4",
+                    borderColor: "#243652",
                   }}
                 >
-                  <Text style={{ fontSize: 15.5, lineHeight: 25, color: "#18181b" }}>
+                  <Text style={{ fontSize: 15.5, lineHeight: 25, color: "#C8BEAF" }}>
                     {msg.text}
                   </Text>
                 </View>
@@ -629,12 +645,12 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
       {/* ── Controls ── */}
       <View
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: "#0B1929",
           paddingTop: 12,
           paddingBottom: 18,
           paddingHorizontal: 20,
           borderTopWidth: 1,
-          borderTopColor: "#f2f2f5",
+          borderTopColor: "#243652",
         }}
       >
         {/* Voice Orb */}
@@ -645,13 +661,22 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
               disabled={voiceState === "thinking"}
               hitSlop={24}
               style={{ opacity: voiceState === "thinking" ? 0.75 : 1 }}
+              accessibilityRole="button"
+              accessibilityLabel={
+                voiceState === "listening"
+                  ? "Stop recording"
+                  : voiceState === "speaking"
+                  ? "Interrupt and start recording"
+                  : "Start recording"
+              }
+              accessibilityState={{ disabled: voiceState === "thinking" }}
             >
               <VoiceOrb state={voiceState} size={130} />
             </Pressable>
             <Text
               style={{
                 fontSize: 13,
-                color: "#a1a1aa",
+                color: "#7A8FA8",
                 marginTop: 10,
                 letterSpacing: 0.3,
                 fontWeight: "500",
@@ -662,14 +687,16 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
             {voiceState === "speaking" && (
               <Pressable
                 onPress={() => { stopCurrentTTS(); idleStatus(); }}
+                accessibilityRole="button"
+                accessibilityLabel="Stop playback"
                 style={{
                   marginTop: 8,
                   paddingHorizontal: 20,
                   paddingVertical: 6,
                   borderRadius: 20,
-                  backgroundColor: "#fef2f2",
+                  backgroundColor: "#1E3050",
                   borderWidth: 1,
-                  borderColor: "#fecaca",
+                  borderColor: "#F87171",
                 }}
               >
                 <Text style={{ fontSize: 12, color: "#ef4444", fontWeight: "700", letterSpacing: 0.4 }}>
@@ -682,16 +709,16 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
 
         {showMicButton && (
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: "#f2f2f5" }} />
-            <Text style={{ fontSize: 11, color: "#d4d4d8", marginHorizontal: 10, fontWeight: "600", letterSpacing: 0.8, textTransform: "uppercase" }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: "#243652" }} />
+            <Text style={{ fontSize: 11, color: "#7A8FA8", marginHorizontal: 10, fontWeight: "600", letterSpacing: 0.8, textTransform: "uppercase" }}>
               or type
             </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: "#f2f2f5" }} />
+            <View style={{ flex: 1, height: 1, backgroundColor: "#243652" }} />
           </View>
         )}
 
         {!showMicButton && (
-          <Text style={{ fontSize: 12, color: "#a1a1aa", textAlign: "center", marginBottom: 10 }}>
+          <Text style={{ fontSize: 12, color: "#7A8FA8", textAlign: "center", marginBottom: 10 }}>
             {statusText}
           </Text>
         )}
@@ -702,39 +729,45 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
             flexDirection: "row",
             alignItems: "center",
             gap: 10,
-            backgroundColor: "#f6f6f9",
+            backgroundColor: "#152339",
             borderRadius: 28,
             paddingHorizontal: 6,
             paddingVertical: 6,
+            borderWidth: 1,
+            borderColor: "#243652",
           }}
         >
           <TextInput
             value={textInput}
             onChangeText={setTextInput}
             placeholder="Ask me anything…"
-            placeholderTextColor="#b0b0b8"
+            placeholderTextColor="#7A8FA8"
             editable={!isDisabled}
             returnKeyType="send"
             onSubmitEditing={handleSendText}
+            accessibilityLabel="Type your question"
             style={{
               flex: 1,
               height: 44,
               paddingHorizontal: 16,
               fontSize: 15,
-              color: "#18181b",
+              color: "#E8DDD0",
             }}
           />
           <Pressable
             onPress={handleSendText}
             disabled={isDisabled || !textInput.trim()}
+            accessibilityRole="button"
+            accessibilityLabel="Send question"
+            accessibilityState={{ disabled: isDisabled || !textInput.trim() }}
             style={{
               width: 44,
               height: 44,
               borderRadius: 22,
-              backgroundColor: isDisabled || !textInput.trim() ? "#e8e8ee" : accentColor,
+              backgroundColor: isDisabled || !textInput.trim() ? "#1E3050" : "#F59E0B",
               alignItems: "center",
               justifyContent: "center",
-              shadowColor: accentColor,
+              shadowColor: "#F59E0B",
               shadowOpacity: isDisabled || !textInput.trim() ? 0 : 0.35,
               shadowRadius: 8,
               shadowOffset: { width: 0, height: 3 },
@@ -743,7 +776,7 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
             <Ionicons
               name="arrow-up"
               size={20}
-              color={isDisabled || !textInput.trim() ? "#b0b0b8" : "#ffffff"}
+              color={isDisabled || !textInput.trim() ? "#7A8FA8" : "#0B1929"}
             />
           </Pressable>
         </View>
@@ -751,6 +784,8 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
         {/* Clear conversation */}
         {messages.length > 1 && (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Clear conversation"
             onPress={() => {
               stopCurrentTTS();
               setMessages(greetingTextRef.current
@@ -761,9 +796,14 @@ function VoiceInterface({ agent, isBrowser }: { agent: any; isBrowser: boolean }
             }}
             style={{ alignItems: "center", marginTop: 12 }}
           >
-            <Text style={{ fontSize: 12, color: "#d4d4d8", letterSpacing: 0.2 }}>Clear conversation</Text>
+            <Text style={{ fontSize: 12, color: "#243652", letterSpacing: 0.2 }}>Clear conversation</Text>
           </Pressable>
         )}
+
+        {/* Powered by Nuru */}
+        <Text style={{ fontSize: 10, color: "#243652", textAlign: "center", marginTop: 10, letterSpacing: 1, textTransform: "uppercase" }}>
+          Powered by Nuru
+        </Text>
       </View>
     </SafeAreaView>
   );

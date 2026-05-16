@@ -22,7 +22,7 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -44,6 +44,8 @@ const GRADE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 export default function AgentDetailScreen() {
   const { id: agentId } = useLocalSearchParams<{ id: string }>();
   const { user } = db.useAuth();
+  const [, setRetryCount] = useState(0);
+  const retry = useCallback(() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setRetryCount((c) => c + 1); }, []);
 
   const { isLoading, error, data } = db.useQuery(
     agentId ? { agents: { $: { where: { id: agentId } } } } : null
@@ -53,8 +55,8 @@ export default function AgentDetailScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-        <ActivityIndicator size="large" color="#4f46e5" />
+      <View className="flex-1 items-center justify-center bg-nuru-bg-light dark:bg-nuru-bg">
+        <ActivityIndicator size="large" color="#F59E0B" />
       </View>
     );
   }
@@ -64,14 +66,19 @@ export default function AgentDetailScreen() {
       <View className="flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-8">
         <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
         <Text style={{ fontSize: 16, fontWeight: "700", color: "#18181b", textAlign: "center", marginBottom: 8 }}>
-          Couldn't load agent
+          {"Couldn't load this tutor"}
         </Text>
-        <Text style={{ fontSize: 14, color: "#71717a", textAlign: "center", marginBottom: 20 }}>
-          {error.message ?? "Something went wrong. Check your connection."}
+        <Text style={{ fontSize: 14, color: "#71717a", textAlign: "center", marginBottom: 24 }}>
+          Check your connection and try again.
         </Text>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: "#4f46e5", fontWeight: "600" }}>Go back</Text>
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <Pressable onPress={retry} style={{ backgroundColor: "#F59E0B", borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 }}>
+            <Text style={{ color: "#0B1929", fontWeight: "700", fontSize: 14 }}>Try again</Text>
+          </Pressable>
+          <Pressable onPress={() => router.back()} style={{ borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12, borderWidth: 1, borderColor: "#e4e4e7" }}>
+            <Text style={{ color: "#71717a", fontWeight: "600", fontSize: 14 }}>Go back</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -81,7 +88,7 @@ export default function AgentDetailScreen() {
       <View className="flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-8">
         <Text className="text-zinc-500 text-center">Agent not found.</Text>
         <Pressable onPress={() => router.back()} className="mt-4">
-          <Text className="text-indigo-600 font-semibold">Go back</Text>
+          <Text className="text-nuru-primary font-semibold">Go back</Text>
         </Pressable>
       </View>
     );
@@ -278,25 +285,30 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-nuru-bg-light dark:bg-nuru-bg" edges={["top"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
 
           {/* Back + header */}
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
-            <Pressable onPress={() => router.back()} style={{ marginRight: 10, padding: 4 }}>
-              <Ionicons name="chevron-back" size={22} color="#4338ca" />
+            <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" style={{ marginRight: 10, padding: 4 }}>
+              <Ionicons name="chevron-back" size={22} color="#F59E0B" />
             </Pressable>
-            <Text style={{ flex: 1, fontSize: 20, fontWeight: "800", letterSpacing: -0.5 }} className="text-zinc-900 dark:text-white" numberOfLines={1}>
+            <Text style={{ flex: 1, fontSize: 20, fontWeight: "800", letterSpacing: -0.5 }} className="text-nuru-text-light dark:text-nuru-text" numberOfLines={1}>
               {agent.name}
             </Text>
             {confirmDelete ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Pressable onPress={() => setConfirmDelete(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel delete"
                   style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: "#f4f4f5" }}>
                   <Text style={{ fontSize: 13, fontWeight: "600", color: "#52525b" }}>Cancel</Text>
                 </Pressable>
                 <Pressable onPress={handleDelete} disabled={deleting}
+                  accessibilityRole="button"
+                  accessibilityLabel="Confirm delete"
+                  accessibilityState={{ disabled: deleting }}
                   style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: "#ef4444" }}>
                   {deleting
                     ? <ActivityIndicator size="small" color="#fff" />
@@ -305,6 +317,8 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               </View>
             ) : (
               <Pressable onPress={() => setConfirmDelete(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Delete agent"
                 style={{ padding: 8, borderRadius: 10, backgroundColor: "#fef2f2" }}>
                 <Ionicons name="trash-outline" size={18} color="#ef4444" />
               </Pressable>
@@ -312,7 +326,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
           </View>
 
           {/* Share card — dark premium */}
-          <View style={{ backgroundColor: "#1e1b4b", borderRadius: 24, overflow: "hidden", marginBottom: 28 }}>
+          <View style={{ backgroundColor: "#0B1929", borderRadius: 24, overflow: "hidden", marginBottom: 28, borderWidth: 1, borderColor: "#243652" }}>
             <View style={{ alignItems: "center", paddingTop: 28, paddingBottom: 20, paddingHorizontal: 20 }}>
               <Text style={{ color: "rgba(255,255,255,0.45)", fontSize: 10, fontWeight: "700", letterSpacing: 2, textTransform: "uppercase", marginBottom: 20 }}>
                 Student Access
@@ -329,6 +343,8 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                 {shareLink}
               </Text>
               <Pressable onPress={copyLink}
+                accessibilityRole="button"
+                accessibilityLabel={copied ? "Link copied" : "Copy share link"}
                 style={{ backgroundColor: copied ? "#10b981" : "rgba(255,255,255,0.15)", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}>
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>{copied ? "Copied!" : "Copy"}</Text>
               </Pressable>
@@ -338,14 +354,16 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
           {/* Edit fields */}
           <SectionLabel>Agent name</SectionLabel>
           <TextInput value={name} onChangeText={(v) => { setName(v); if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined })); }}
+            accessibilityLabel="Agent name"
             style={{ marginBottom: fieldErrors.name ? 4 : 20, borderColor: fieldErrors.name ? "#ef4444" : undefined }}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+            className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.name ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.name}</Text> : null}
 
           <SectionLabel>Subject</SectionLabel>
           <TextInput value={subject} onChangeText={(v) => { setSubject(v); setLibrarySubject(v); if (fieldErrors.subject) setFieldErrors((p) => ({ ...p, subject: undefined })); }}
+            accessibilityLabel="Subject"
             style={{ marginBottom: fieldErrors.subject ? 4 : 20, borderColor: fieldErrors.subject ? "#ef4444" : undefined }}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+            className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.subject ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.subject}</Text> : null}
 
           {/* Grade 1-12 grid */}
@@ -355,6 +373,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               const sel = gradeLevel === String(g);
               return (
                 <Pressable key={g} onPress={() => { setGradeLevel(String(g)); Haptics.selectionAsync(); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Grade ${g}`}
+                  accessibilityState={{ selected: sel }}
                   style={{
                     width: "22%",
                     margin: "1.5%",
@@ -371,7 +392,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                   }}
                   className={sel ? "" : "dark:bg-zinc-800 dark:border-zinc-700"}
                 >
-                  <Text style={{ fontWeight: "700", fontSize: 15, color: sel ? "#fff" : "#52525b" }} className={sel ? "" : "dark:text-zinc-200"}>{g}</Text>
+                  <Text style={{ fontWeight: "700", fontSize: 15, color: sel ? "#0B1929" : "#52525b" }} className={sel ? "" : "dark:text-zinc-200"}>{g}</Text>
                 </Pressable>
               );
             })}
@@ -383,6 +404,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               const sel = language === lang;
               return (
                 <Pressable key={lang} onPress={() => { setLanguage(lang); Haptics.selectionAsync(); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={lang}
+                  accessibilityState={{ selected: sel }}
                   style={{
                     borderRadius: 20,
                     paddingHorizontal: 16,
@@ -393,7 +417,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                   }}
                   className={sel ? "" : "dark:bg-zinc-800 dark:border-zinc-700"}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: sel ? "#fff" : "#52525b" }} className={sel ? "" : "dark:text-zinc-300"}>{lang}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: sel ? "#0B1929" : "#52525b" }} className={sel ? "" : "dark:text-zinc-300"}>{lang}</Text>
                 </Pressable>
               );
             })}
@@ -401,13 +425,14 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           <SectionLabel>Agent instructions</SectionLabel>
           <TextInput value={systemPrompt} onChangeText={(v) => { setSystemPrompt(v); if (fieldErrors.systemPrompt) setFieldErrors((p) => ({ ...p, systemPrompt: undefined })); }} multiline numberOfLines={5} textAlignVertical="top"
+            accessibilityLabel="Agent instructions"
             style={{ marginBottom: fieldErrors.systemPrompt ? 4 : 20, minHeight: 120, borderColor: fieldErrors.systemPrompt ? "#ef4444" : undefined }}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+            className="bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
           {fieldErrors.systemPrompt ? <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginLeft: 4 }}>{fieldErrors.systemPrompt}</Text> : null}
 
           {/* Context */}
           <SectionLabel>Add more context</SectionLabel>
-          <View className="flex-row bg-zinc-100 dark:bg-zinc-800 rounded-2xl p-1 mb-4">
+          <View className="flex-row bg-nuru-elevated-light dark:bg-nuru-elevated rounded-2xl p-1 mb-4">
             {(["library", "file", "youtube", "url"] as const).map((tab) => {
               const labels = { library: "📚 Library", file: "📄 File", youtube: "▶️ YouTube", url: "🌐 URL" };
               return (
@@ -425,8 +450,8 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 8 }} className="mb-3">
                 {LIBRARY_SUBJECTS.map((s) => (
                   <Pressable key={s} onPress={() => setLibrarySubject(s)}
-                    className={`rounded-full px-3 py-1.5 border ${libraryFilterSubject === s ? "bg-indigo-600 border-indigo-600" : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700"}`}>
-                    <Text className={`text-xs font-medium ${libraryFilterSubject === s ? "text-white" : "text-zinc-600 dark:text-zinc-300"}`}>{s}</Text>
+                    className={`rounded-full px-3 py-1.5 border ${libraryFilterSubject === s ? "bg-nuru-primary border-nuru-primary" : "bg-nuru-surface-light dark:bg-nuru-surface border-nuru-border-light dark:border-nuru-border"}`}>
+                    <Text className={`text-xs font-medium ${libraryFilterSubject === s ? "text-nuru-on-primary" : "text-nuru-secondary-light dark:text-nuru-secondary"}`}>{s}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -436,7 +461,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               </Text>
 
               {libraryEntries.length === 0 ? (
-                <View className="bg-white dark:bg-zinc-900 rounded-2xl p-4 items-center border border-zinc-100 dark:border-zinc-800">
+                <View className="bg-nuru-surface-light dark:bg-nuru-surface rounded-2xl p-4 items-center border border-nuru-border-light dark:border-nuru-border">
                   <Text className="text-zinc-400 text-sm text-center">No entries for this subject and grade.</Text>
                 </View>
               ) : (
@@ -444,18 +469,18 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                   {libraryEntries.map((entry) => {
                     const added = addedIds.has(entry.title);
                     return (
-                      <View key={entry.id} className="bg-white dark:bg-zinc-900 rounded-2xl px-4 py-3 border border-zinc-100 dark:border-zinc-800 flex-row items-start gap-3">
+                      <View key={entry.id} className="bg-nuru-surface-light dark:bg-nuru-surface rounded-2xl px-4 py-3 border border-nuru-border-light dark:border-nuru-border flex-row items-start gap-3">
                         <View className="flex-1">
                           <Text className="text-sm font-semibold text-zinc-900 dark:text-white mb-0.5">{entry.title}</Text>
                           <Text className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{entry.description}</Text>
                           <View className="flex-row items-center gap-1">
                             <Text className="text-xs">🏛️</Text>
-                            <Text className="text-xs text-indigo-500 font-medium" numberOfLines={1}>{entry.source.split(" and ")[0]}</Text>
+                            <Text className="text-xs text-nuru-primary font-medium" numberOfLines={1}>{entry.source.split(" and ")[0]}</Text>
                           </View>
                         </View>
                         <Pressable onPress={() => addLibraryEntry(entry)} disabled={added}
-                          className={`rounded-xl px-3 py-2 mt-0.5 ${added ? "bg-emerald-50 dark:bg-emerald-900/30" : "bg-indigo-600"}`}>
-                          <Text className={`text-xs font-semibold ${added ? "text-emerald-600" : "text-white"}`}>{added ? "✓ Added" : "Add"}</Text>
+                          className={`rounded-xl px-3 py-2 mt-0.5 ${added ? "bg-emerald-50 dark:bg-emerald-900/30" : "bg-nuru-primary"}`}>
+                          <Text className={`text-xs font-semibold ${added ? "text-emerald-600" : "text-nuru-on-primary"}`}>{added ? "✓ Added" : "Add"}</Text>
                         </Pressable>
                       </View>
                     );
@@ -468,7 +493,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                   <Text className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">🌐 Fetch from trusted source</Text>
                   <View className="gap-2">
                     {trustedSources.map((ts) => (
-                      <View key={ts.id} className="bg-white dark:bg-zinc-900 rounded-2xl px-4 py-3 border border-zinc-100 dark:border-zinc-800 flex-row items-start gap-3">
+                      <View key={ts.id} className="bg-nuru-surface-light dark:bg-nuru-surface rounded-2xl px-4 py-3 border border-nuru-border-light dark:border-nuru-border flex-row items-start gap-3">
                         <View className="flex-1">
                           <Text className="text-sm font-semibold text-zinc-900 dark:text-white mb-0.5">{ts.title}</Text>
                           <Text className="text-xs text-zinc-500 mb-1">{ts.description}</Text>
@@ -481,7 +506,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                         </View>
                         <Pressable onPress={() => handleURLExtract(ts.url)} disabled={extracting}
                           className="bg-zinc-100 dark:bg-zinc-700 rounded-xl px-3 py-2 mt-0.5">
-                          {extracting ? <ActivityIndicator size="small" color="#4f46e5" /> : <Text className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Fetch</Text>}
+                          {extracting ? <ActivityIndicator size="small" color="#F59E0B" /> : <Text className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Fetch</Text>}
                         </Pressable>
                       </View>
                     ))}
@@ -493,8 +518,11 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           {activeContextTab === "file" && (
             <Pressable onPress={handleFilePick} disabled={extracting}
+              accessibilityRole="button"
+              accessibilityLabel="Upload PDF or DOCX"
+              accessibilityState={{ disabled: extracting }}
               className="bg-white dark:bg-zinc-900 border border-dashed border-zinc-300 dark:border-zinc-600 rounded-2xl py-6 items-center justify-center active:scale-95">
-              {extracting ? <ActivityIndicator color="#4f46e5" /> : (
+              {extracting ? <ActivityIndicator color="#F59E0B" /> : (
                 <>
                   <Text className="text-3xl mb-2">📎</Text>
                   <Text className="text-zinc-700 dark:text-zinc-300 font-medium">Upload PDF or DOCX</Text>
@@ -508,10 +536,14 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
               <TextInput value={urlInput} onChangeText={setUrlInput}
                 placeholder={activeContextTab === "youtube" ? "https://youtube.com/watch?v=..." : "https://example.com/article"}
                 placeholderTextColor="#a1a1aa" autoCapitalize="none" keyboardType="url"
-                className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3.5 text-base text-zinc-900 dark:text-white" />
+                accessibilityLabel={activeContextTab === "youtube" ? "YouTube URL" : "Article URL"}
+                className="flex-1 bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-2xl px-4 py-3.5 text-base text-nuru-text-light dark:text-nuru-text" />
               <Pressable onPress={() => handleURLExtract()} disabled={extracting || !urlInput.trim()}
-                className="bg-indigo-600 rounded-2xl px-4 items-center justify-center active:scale-95" style={{ opacity: !urlInput.trim() ? 0.5 : 1 }}>
-                {extracting ? <ActivityIndicator color="white" size="small" /> : <Text className="text-white font-semibold">Extract</Text>}
+                accessibilityRole="button"
+                accessibilityLabel="Extract content"
+                accessibilityState={{ disabled: extracting || !urlInput.trim() }}
+                className="bg-nuru-primary rounded-2xl px-4 items-center justify-center active:scale-95" style={{ opacity: !urlInput.trim() ? 0.5 : 1 }}>
+                {extracting ? <ActivityIndicator color="#0B1929" size="small" /> : <Text className="text-nuru-on-primary font-semibold">Extract</Text>}
               </Pressable>
             </View>
           )}
@@ -527,13 +559,16 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
             <View className="mt-4 gap-2">
               <Text className="text-xs text-zinc-500 font-medium">Sources ({sources.length})</Text>
               {sources.map((s, i) => (
-                <View key={i} className="flex-row items-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl px-3 py-2.5">
+                <View key={i} className="flex-row items-center bg-nuru-surface-light dark:bg-nuru-surface border border-nuru-border-light dark:border-nuru-border rounded-xl px-3 py-2.5">
                   <Text className="text-base mr-2">
                     {s.type === "pdf" ? "📄" : s.type === "docx" ? "📝" : s.type === "youtube" ? "▶️" : s.type === "library" ? "📚" : "🌐"}
                   </Text>
                   <Text className="flex-1 text-sm text-zinc-700 dark:text-zinc-300" numberOfLines={1}>{s.label}</Text>
                   {s.text.length > 0 && (
-                    <Pressable onPress={() => removeSource(i)} hitSlop={8} className="ml-2">
+                    <Pressable onPress={() => removeSource(i)} hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${s.label}`}
+                      className="ml-2">
                       <Text className="text-red-400 text-lg leading-none">×</Text>
                     </Pressable>
                   )}
@@ -544,7 +579,11 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
           {/* Form error */}
           {formError ? (
-            <View style={{ marginTop: 16, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }} className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+            <View
+              style={{ marginTop: 16, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }}
+              className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+              accessibilityLiveRegion="assertive"
+            >
               <Text style={{ fontSize: 14, fontWeight: "500" }} className="text-red-600 dark:text-red-400">{formError}</Text>
             </View>
           ) : null}
@@ -552,6 +591,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
           {/* Save */}
           <View style={{ marginTop: 32, marginBottom: 8, paddingTop: 24, borderTopWidth: 1, borderTopColor: "#f4f4f5" }}>
             <Pressable onPress={handleSave} disabled={saving}
+              accessibilityRole="button"
+              accessibilityLabel={saved ? "Saved" : saving ? "Saving" : "Save changes"}
+              accessibilityState={{ disabled: saving }}
               style={({ pressed }) => ({
                 borderRadius: 18,
                 paddingVertical: 18,
@@ -566,8 +608,8 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                 elevation: 8,
               })}>
               {saving
-                ? <ActivityIndicator color="white" />
-                : <Text style={{ color: "white", fontWeight: "800", fontSize: 16, letterSpacing: 0.3 }}>{saved ? "✓ Saved!" : "Save Changes"}</Text>
+                ? <ActivityIndicator color="#0B1929" />
+                : <Text style={{ color: "#0B1929", fontWeight: "800", fontSize: 16, letterSpacing: 0.3 }}>{saved ? "✓ Saved!" : "Save Changes"}</Text>
               }
             </Pressable>
           </View>
@@ -582,9 +624,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                 ))}
               </View>
             ) : questions.length === 0 ? (
-              <View style={{ alignItems: "center", paddingVertical: 28, backgroundColor: "#fafafa", borderRadius: 18, borderWidth: 1, borderColor: "#f0f0f0" }}>
+              <View style={{ alignItems: "center", paddingVertical: 28, backgroundColor: "#152339", borderRadius: 18, borderWidth: 1, borderColor: "#243652" }}>
                 <Text style={{ fontSize: 28, marginBottom: 8 }}>📭</Text>
-                <Text style={{ fontSize: 14, color: "#a1a1aa", textAlign: "center" }}>
+                <Text style={{ fontSize: 14, color: "#7A8FA8", textAlign: "center" }}>
                   No questions yet — share the QR code with your students.
                 </Text>
               </View>
@@ -594,8 +636,11 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                 <Pressable
                   onPress={handleSummarize}
                   disabled={summarizing}
+                  accessibilityRole="button"
+                  accessibilityLabel={summarizing ? "Summarizing" : "Summarize with AI"}
+                  accessibilityState={{ disabled: summarizing }}
                   style={({ pressed }) => ({
-                    backgroundColor: summarizing ? "#e0e7ff" : pressed ? "#3730a3" : "#4338ca",
+                    backgroundColor: summarizing ? "#1E3050" : pressed ? "#FBBF24" : "#F59E0B",
                     borderRadius: 14,
                     paddingVertical: 13,
                     alignItems: "center",
@@ -604,9 +649,9 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                   })}
                 >
                   {summarizing ? (
-                    <ActivityIndicator color="white" size="small" />
+                    <ActivityIndicator color="#F59E0B" size="small" />
                   ) : (
-                    <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
+                    <Text style={{ color: "#0B1929", fontWeight: "700", fontSize: 14 }}>
                       ✨ Summarize with AI
                     </Text>
                   )}
@@ -614,11 +659,11 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
 
                 {/* Summary result */}
                 {summary ? (
-                  <View style={{ backgroundColor: "#f0f9ff", borderRadius: 14, borderWidth: 1, borderColor: "#bae6fd", padding: 16, marginBottom: 16 }}>
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: "#0369a1", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+                  <View style={{ backgroundColor: "#152339", borderRadius: 14, borderWidth: 1, borderColor: "#243652", padding: 16, marginBottom: 16 }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: "#F59E0B", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
                       AI Summary
                     </Text>
-                    <Text style={{ fontSize: 14, color: "#0c4a6e", lineHeight: 22 }}>{summary}</Text>
+                    <Text style={{ fontSize: 14, color: "#C8BEAF", lineHeight: 22 }}>{summary}</Text>
                   </View>
                 ) : null}
 
@@ -628,27 +673,27 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                     <View
                       key={q.id}
                       style={{
-                        backgroundColor: "#ffffff",
+                        backgroundColor: "#152339",
                         borderRadius: 14,
                         borderWidth: 1,
-                        borderColor: "#f0f0f4",
+                        borderColor: "#243652",
                         paddingHorizontal: 16,
                         paddingVertical: 12,
                         flexDirection: "row",
                         alignItems: "flex-start",
                         gap: 10,
                         shadowColor: "#000",
-                        shadowOpacity: 0.03,
+                        shadowOpacity: 0.1,
                         shadowRadius: 4,
                         shadowOffset: { width: 0, height: 1 },
                       }}
                     >
                       <Text style={{ fontSize: 16, marginTop: 1 }}>💬</Text>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, color: "#18181b", lineHeight: 20 }} numberOfLines={3}>
+                        <Text style={{ fontSize: 14, color: "#E8DDD0", lineHeight: 20 }} numberOfLines={3}>
                           {q.question}
                         </Text>
-                        <Text style={{ fontSize: 11, color: "#a1a1aa", marginTop: 4 }}>
+                        <Text style={{ fontSize: 11, color: "#7A8FA8", marginTop: 4 }}>
                           {formatRelativeTime(q.createdAt)}
                         </Text>
                       </View>
@@ -656,7 +701,7 @@ function AgentEditor({ agent, userId }: { agent: Agent; userId?: string }) {
                   ))}
                 </View>
 
-                <Text style={{ fontSize: 11, color: "#d4d4d8", textAlign: "center", marginTop: 12 }}>
+                <Text style={{ fontSize: 11, color: "#243652", textAlign: "center", marginTop: 12 }}>
                   Showing last {questions.length} question{questions.length !== 1 ? "s" : ""}
                 </Text>
               </>
@@ -682,11 +727,11 @@ function formatRelativeTime(ts: number): string {
 function SectionLabel({ children }: { children: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-      <View style={{ flex: 1, height: 1 }} className="bg-zinc-200 dark:bg-zinc-700" />
+      <View style={{ flex: 1, height: 1 }} className="bg-nuru-border-light dark:bg-nuru-border" />
       <Text style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.5, textTransform: "uppercase" }} className="text-zinc-400 dark:text-zinc-500">
         {children}
       </Text>
-      <View style={{ flex: 1, height: 1 }} className="bg-zinc-200 dark:bg-zinc-700" />
+      <View style={{ flex: 1, height: 1 }} className="bg-nuru-border-light dark:bg-nuru-border" />
     </View>
   );
 }
